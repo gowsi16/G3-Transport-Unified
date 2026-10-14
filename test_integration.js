@@ -274,35 +274,30 @@ async function runTests() {
       headers: { 'Authorization': `Bearer ${adminToken}` }
     });
 
-    if (resVehicles.json?.length > 0 && resDrivers.json?.length > 0 && resUnifiedBookings.json?.length > 0) {
+    if (resVehicles.json?.length > 0 && resDrivers.json?.length > 0) {
       const testVehicle = resVehicles.json[0];
       const testDriver = resDrivers.json[0];
-      const testBooking = resUnifiedBookings.json[0];
+      const uniqueDate = '2028-11-' + String(Math.floor(10 + Math.random() * 18));
 
-      // Assign booking using exact vehicle_no and driver
-      const resAssign = await request({
-        path: `/api/bookings/${testBooking.booking_id}/assign`,
-        method: 'PUT',
-        headers: {
-          'Authorization': `Bearer ${adminToken}`,
-          'Content-Type': 'application/json'
-        }
+      // Create booking 1 on uniqueDate
+      const resCreate1 = await request({
+        path: '/api/bookings',
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
       }, {
-        vehicle_no: testVehicle.vehicle_no,
-        driver: testDriver.name || testVehicle.driver,
-        approved_fare: testBooking.estimated_price || 15000,
-        trip_duration_days: 1
+        customer_id: 'CUST-TEST-INT',
+        pickup: 'Salem',
+        delivery: 'Chennai',
+        weight_kg: 2500,
+        helpers: 1,
+        expected_date: uniqueDate
       });
-      assert('31. PUT /api/bookings/:id/assign successfully assigns driver and lorry',
-        resAssign.status === 200 && resAssign.json?.success === true,
-        JSON.stringify(resAssign.json)
-      );
 
-      // Attempt overlapping assignment on an eligible second booking with the SAME date
-      const secondBooking = resUnifiedBookings.json.find(b => b.booking_id !== testBooking.booking_id && b.expected_date === testBooking.expected_date);
-      if (secondBooking) {
-        const resConflict = await request({
-          path: `/api/bookings/${secondBooking.booking_id}/assign`,
+      const b1 = resCreate1.json?.booking;
+      if (b1) {
+        // Assign booking 1
+        const resAssign = await request({
+          path: `/api/bookings/${b1.booking_id}/assign`,
           method: 'PUT',
           headers: {
             'Authorization': `Bearer ${adminToken}`,
@@ -311,27 +306,62 @@ async function runTests() {
         }, {
           vehicle_no: testVehicle.vehicle_no,
           driver: testDriver.name || testVehicle.driver,
-          approved_fare: secondBooking.estimated_price || 15000,
+          approved_fare: 14000,
           trip_duration_days: 1
         });
-        assert('32. Overlapping driver/lorry assignment returns 409 Conflict',
-          resConflict.status === 409 && (resConflict.json?.error?.includes('conflict') || resConflict.json?.error?.includes('Vehicle') || resConflict.json?.error?.includes('Driver')),
-          JSON.stringify(resConflict.json)
+        assert('31. PUT /api/bookings/:id/assign successfully assigns driver and lorry',
+          resAssign.status === 200 && resAssign.json?.success === true,
+          JSON.stringify(resAssign.json)
         );
-      } else {
-        assert('32. Overlapping driver/lorry assignment conflict check verified by booking test suite', true);
+
+        // Create booking 2 on the same uniqueDate
+        const resCreate2 = await request({
+          path: '/api/bookings',
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        }, {
+          customer_id: 'CUST-TEST-INT',
+          pickup: 'Salem',
+          delivery: 'Chennai',
+          weight_kg: 2000,
+          helpers: 0,
+          expected_date: uniqueDate
+        });
+        const b2 = resCreate2.json?.booking;
+
+        if (b2) {
+          const resConflict = await request({
+            path: `/api/bookings/${b2.booking_id}/assign`,
+            method: 'PUT',
+            headers: {
+              'Authorization': `Bearer ${adminToken}`,
+              'Content-Type': 'application/json'
+            }
+          }, {
+            vehicle_no: testVehicle.vehicle_no,
+            driver: testDriver.name || testVehicle.driver,
+            approved_fare: 12000,
+            trip_duration_days: 1
+          });
+          assert('32. Overlapping driver/lorry assignment on same date returns 409 Conflict',
+            resConflict.status === 409 && (resConflict.json?.error?.includes('conflict') || resConflict.json?.error?.includes('Vehicle') || resConflict.json?.error?.includes('Driver') || resConflict.json?.error?.includes('schedule')),
+            JSON.stringify(resConflict.json)
+          );
+        }
       }
     }
 
-    // 10. Database Integrity Verification
+    // 15. Database Integrity Verification
+    const unifiedDbPath = path.resolve(__dirname, 'backend', 'database', 'g3transport.db');
+    const unifiedDbExists = fs.existsSync(unifiedDbPath) && fs.statSync(unifiedDbPath).size > 0;
+    assert('33. Unified database exists and is non-empty', unifiedDbExists, unifiedDbPath);
+
     const transportDbPath = path.resolve(__dirname, 'G3-Transport', 'backend', 'database.sqlite');
     const bookingDbPath = path.resolve(__dirname, 'G3_Booking_Site', 'backend', 'g3transport.db');
-
     const transportDbExists = fs.existsSync(transportDbPath) && fs.statSync(transportDbPath).size > 0;
     const bookingDbExists = fs.existsSync(bookingDbPath) && fs.statSync(bookingDbPath).size > 0;
-
-    assert('26. Transport database exists separately and is non-empty', transportDbExists, transportDbPath);
-    assert('27. Booking database exists separately and is non-empty', bookingDbExists, bookingDbPath);
+    assert('34. Original Transport database preserved intact as archive', transportDbExists, transportDbPath);
+    assert('35. Original Booking database preserved intact as archive', bookingDbExists, bookingDbPath);
 
     console.log('\n----------------------------------------------------------------');
     console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);

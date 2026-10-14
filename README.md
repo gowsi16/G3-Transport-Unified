@@ -1,83 +1,77 @@
-# G3 Transport & Booking Integration — Single Localhost (One Origin)
+# G3 Transport Unified Application
 
-Welcome to the unified **G3 Transport & Booking Management System**. Both applications have been integrated into **one single localhost entry point** (`http://localhost:3000`).
+A unified transportation management system combining the customer consignment booking site and the G3 Transport operational admin dashboard into a single, cohesive full-stack application.
 
 ---
 
 ## Architecture Overview
 
 ```
-                                  +---------------------------------------+
-                                  |         SINGLE ENTRY POINT            |
-                                  |        http://localhost:3000          |
-                                  +---------------------------------------+
-                                                     |
-                                                     v
-                                  +---------------------------------------+
-                                  |     UNIFIED GATEWAY (PORT 3000)       |
-                                  |            (gateway.js)               |
-                                  +---------------------------------------+
-                                     |               |                 |
-            +------------------------+               |                 +-----------------------+
-            |                                        |                                         |
-     Path: /, /book, /track, /about           Path: /admin/*                           Path: /api/*
-            |                                        |                                         |
-            v                                        v                                         v
-+-----------------------+                +-----------------------+               +-----------------------------+
-|    G3 BOOKING SITE    |                |  G3 TRANSPORT ADMIN   |               |        BACKEND APIS         |
-|   (React 19 / Vite)   |                |  (React 18 / CRA)     |               |  (Internal Dev Proxying)    |
-|   Internal Port 5173  |                |  Internal Port 3002   |               +-----------------------------+
-|                       |                |  or Static Build      |                 |                         |
-| • Green Theme         |                |                       |     /api/trips*, /api/login     /api/*, /api/admin/*
-| • Public Booking Form |                | • Admin Login         |                 |                         |
-| • Live Fare Engine    |                | • OCR Invoice Reader  |                 v                         v
-| • Tracking System     |                | • Trips Management    |     +-----------------------+ +---------------------+
-| • Customer Auth       |                | • Invoice PDF Gen     |     |   TRANSPORT BACKEND   | |   BOOKING BACKEND   |
-| • Navbar "Admin" Link |                | • Fleet Analytics     |     |      (Port 5001)      | |     (Port 5000)     |
-+-----------------------+                | • Booking Dispatch    |     +-----------------------+ +---------------------+
-                                         | • "Booking Site ↗"    |                 |                         |
-                                         +-----------------------+                 v                         v
-                                                                          [database.sqlite]          [g3transport.db]
-                                                                        (72 Trips, Invoices)       (27 Bookings, Lorries)
+                                +---------------------------------------+
+                                |         SINGLE ENTRY POINT            |
+                                |        http://localhost:3000          |
+                                +---------------------------------------+
+                                                   |
+                                                   v
+                                +---------------------------------------+
+                                |      UNIFIED FRONTEND (Vite / React)  |
+                                |            Port 3000                  |
+                                +---------------------------------------+
+                                   |                                |
+                 +-----------------+                                +-----------------+
+                 |                                                                    |
+        Path: /, /book, /track, /about                                        Path: /admin/*
+                 |                                                                    |
+                 v                                                                    v
+     +-----------------------+                                            +-----------------------+
+     |  CUSTOMER PORTAL      |                                            |  ADMIN PORTAL         |
+     |                       |                                            |                       |
+     | • Green / White Theme |                                            | • Single Admin Login  |
+     | • Live Fare Calculator|                                            | • Orders Management   |
+     | • Booking Wizard      |                                            | • Driver/Lorry Assign |
+     | • Shipment Tracking   |                                            | • Conflict Prevention |
+     | • Customer Account    |                                            | • Trips Management    |
+     +-----------------------+                                            | • OCR Invoice Reader  |
+                                                                          | • Invoice PDF Engine  |
+                                                                          | • 8 KPI Analytics     |
+                                                                          | • Notification Alerts |
+                                                                          +-----------------------+
+                                                   |
+                                                   | Proxy /api/*
+                                                   v
+                                +---------------------------------------+
+                                |      UNIFIED BACKEND (Express.js)     |
+                                |            Port 5000                  |
+                                +---------------------------------------+
+                                                   |
+                                                   v
+                                +---------------------------------------+
+                                |          UNIFIED DATABASE             |
+                                |    backend/database/g3transport.db    |
+                                |  (72 Trips, 42 Bookings, Fleet, KPIs) |
+                                +---------------------------------------+
 ```
 
 ---
 
-## Key Features & Experience
+## Key Features
 
-1. **One Localhost Only (`http://localhost:3000`):**
-   - The user only ever opens `http://localhost:3000`.
-   - No port switching, no multiple browser tabs required.
-   - All frontends and backends communicate through relative paths (`/api/...`).
-
-2. **Public Booking Site Opens First:**
-   - Navigating to `http://localhost:3000` renders the original **G3 Booking Site** with its signature green theme.
-   - Public visitors can browse routes, calculate pricing, check availability, book shipments, and track consignments.
-   - Admin features, OCR, reports, invoices, and analytics are hidden from public visitors.
-
-3. **Secure Admin Authentication & Access:**
-   - Selecting **Admin** in the Booking Site navbar navigates to `http://localhost:3000/admin`.
-   - Unauthenticated visitors are greeted by the Administrator Login screen.
-   - Authenticated administrators gain full access to:
-     - **Trips Management** (72 live records, status filters, CSV download, Excel upload)
-     - **OCR Processing** (Tesseract OCR receipt parsing, automated trip creation)
-     - **Invoice Generation** (PDF download, transport vs customer copy)
-     - **Fleet Analytics Dashboard** (revenue, expenses, net profit, driver KPIs with Chart.js)
-     - **Booking Dispatch Admin** (2FA-protected master consignment dispatch)
-   - Admins can click **Booking Site ↗** in the navbar to return to public booking without losing their session.
-   - Clicking **Logout** clears admin tokens and returns the browser to the public booking page.
-
-4. **Zero Database Migrations or Destruction:**
-   - `database.sqlite` (72 trips) and `g3transport.db` (27 consignments) remain completely untouched and separate.
-
----
-
-## Admin Credentials
-
-| Portal / Module | Username | Password | Secondary Factor |
-| :--- | :--- | :--- | :--- |
-| **Transport Admin** | `admin.g3` | `gggbrothers` | Role verified on server (`role: 'admin'`) |
-| **Booking Admin (Dispatch)** | `admin` | `admin123` | 6-Digit Email OTP (Logged to console in dev) |
+1. **Single Localhost (`http://localhost:3000`):**
+   - The entire application runs on `http://localhost:3000`.
+   - Public customer pages and the authenticated `/admin` portal are served from the same origin without CORS or cookie issues.
+2. **Unified Admin Portal (`http://localhost:3000/admin`):**
+   - Single admin login using credentials:
+     - **Username:** `admin.g3`
+     - **Password:** `gggbrothers`
+   - Access to **Orders**, **Trips**, **OCR Reader**, **Invoices**, **Analytics**, and real-time **Notifications**.
+3. **Driver & Lorry Assignment with Overlap Prevention:**
+   - Visual assignment modal to select available vehicles and drivers.
+   - Enforces vehicle weight capacities and blocks duplicate schedule assignments with HTTP 409 Conflict.
+4. **Comprehensive Fleet Analytics:**
+   - 8 live KPI counters: Total Bookings, Pending, Confirmed, Assigned Orders, In-Transit Trips, Completed Trips, Cancelled, and Rejected.
+   - Revenue, expense, and net profit charts powered by Chart.js.
+5. **Zero Data Loss Migration:**
+   - 72 operational trips from G3 Transport and 42 customer bookings consolidated into `backend/database/g3transport.db`.
 
 ---
 
@@ -86,22 +80,33 @@ Welcome to the unified **G3 Transport & Booking Management System**. Both applic
 From the project root (`D:\Project\G3-Integration`):
 
 ```bash
-npm start
+npm run dev
 ```
 
 *Or double-click `start-all.bat` or run `.\start-all.ps1` in PowerShell.*
 
-This starts the unified gateway and internal services, then automatically launches your browser at:
-**`http://localhost:3000`**
+This starts both the unified backend (:5000) and frontend (:3000) concurrently and opens your browser at **`http://localhost:3000`**.
 
 ---
 
-## Automated Test Suite
+## Automated Test Suites
 
-A complete integration test suite verifies all 30 criteria across routing, authentication, API proxying, security isolation, and database preservation:
-
+### Full-Stack End-to-End Integration Suite (36 Tests)
 ```bash
 npm test
 # or
 node test_integration.js
 ```
+
+### Backend API Test Suite (14 Tests)
+```bash
+npm run test:backend
+# or
+node backend/tests/test_suite.js
+```
+
+---
+
+## Documentation
+
+For in-depth architecture, data schemas, API contracts, and security implementation details, refer to [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md).
