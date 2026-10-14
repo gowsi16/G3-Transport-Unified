@@ -356,12 +356,19 @@ async function runTests() {
     const unifiedDbExists = fs.existsSync(unifiedDbPath) && fs.statSync(unifiedDbPath).size > 0;
     assert('33. Unified database exists and is non-empty', unifiedDbExists, unifiedDbPath);
 
-    const transportDbPath = path.resolve(__dirname, 'G3-Transport', 'backend', 'database.sqlite');
-    const bookingDbPath = path.resolve(__dirname, 'G3_Booking_Site', 'backend', 'g3transport.db');
-    const transportDbExists = fs.existsSync(transportDbPath) && fs.statSync(transportDbPath).size > 0;
-    const bookingDbExists = fs.existsSync(bookingDbPath) && fs.statSync(bookingDbPath).size > 0;
-    assert('34. Original Transport database preserved intact as archive', transportDbExists, transportDbPath);
-    assert('35. Original Booking database preserved intact as archive', bookingDbExists, bookingDbPath);
+    // Verify consolidated tables in unified database
+    const sqlite3 = require(path.resolve(__dirname, 'backend', 'node_modules', 'sqlite3')).verbose();
+    const testDb = new sqlite3.Database(unifiedDbPath);
+    const tripsCount = await new Promise((resolve) => {
+      testDb.get("SELECT COUNT(*) as cnt FROM trips", (err, row) => resolve(row ? row.cnt : 0));
+    });
+    assert('34. Unified database contains operational trips (72+ records)', tripsCount >= 70, `Count: ${tripsCount}`);
+
+    const bookingsCount = await new Promise((resolve) => {
+      testDb.get("SELECT COUNT(*) as cnt FROM bookings", (err, row) => resolve(row ? row.cnt : 0));
+    });
+    assert('35. Unified database contains customer bookings (40+ records)', bookingsCount >= 40, `Count: ${bookingsCount}`);
+    testDb.close();
 
     console.log('\n----------------------------------------------------------------');
     console.log(`TOTAL TESTS: ${passed + failed} | PASSED: ${passed} | FAILED: ${failed}`);

@@ -8,11 +8,12 @@ export default defineConfig({
     tailwindcss()
   ],
   optimizeDeps: {
-    include: ['jspdf', 'canvg', 'html2canvas', 'chart.js', 'react-chartjs-2', 'lucide-react', 'framer-motion']
+    include: ['jspdf', 'html2canvas', 'chart.js', 'react-chartjs-2', 'lucide-react', 'framer-motion'],
+    exclude: ['canvg']
   },
   build: {
     rollupOptions: {
-      external: []
+      external: ['canvg']
     }
   },
   server: {
