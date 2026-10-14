@@ -1,0 +1,12 @@
+node_modules/
+*/node_modules/
+*/*/node_modules/
+.env
+.env.local
+*.log
+dist/
+build/
+*.sqlite-journal
+*.db-journal
+.DS_Store
+Thumbs.db

@@ -1,0 +1,24 @@
+{
+  "name": "g3-unified-admin",
+  "version": "1.0.0",
+  "description": "Unified Admin Application for G3 Transport Management and G3 Booking Site",
+  "scripts": {
+    "start:transport-backend": "cd G3-Transport/backend && npm start",
+    "start:booking-backend": "cd G3_Booking_Site/backend && npm start",
+    "start:unified-frontend": "cd G3-Transport/frontend && npm start",
+    "start:public-booking": "cd G3_Booking_Site/frontend && npm run dev",
+    "build:unified-frontend": "cd G3-Transport/frontend && npm run build",
+    "test:booking-backend": "cd G3_Booking_Site/backend && node test_suite.js",
+    "test:integration": "node test_integration.js",
+    "test": "node test_integration.js",
+    "start": "node start-unified.js"
+  },
+  "keywords": [
+    "transport",
+    "logistics",
+    "fleet-management",
+    "booking-admin"
+  ],
+  "author": "G3 Transport Team",
+  "license": "ISC"
+}
