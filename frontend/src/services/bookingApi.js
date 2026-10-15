@@ -211,6 +211,148 @@ export const bookingApi = {
       status: 'Rejected',
       rejection_reason: reason || 'Rejected by Admin'
     });
+  },
+
+  // ─── Contact Messages ──────────────────────────────────────────────────────
+  submitContact: async (payload) => {
+    const res = await fetch(`${API_BASE}/contact`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to submit enquiry');
+    return data;
+  },
+
+  getContactMessages: async (filters = {}) => {
+    let url = `${API_BASE}/admin/contact-messages?`;
+    if (filters.search) url += `search=${encodeURIComponent(filters.search)}&`;
+    if (filters.status) url += `status=${encodeURIComponent(filters.status)}&`;
+    if (filters.subject) url += `subject=${encodeURIComponent(filters.subject)}&`;
+    if (filters.date_from) url += `date_from=${encodeURIComponent(filters.date_from)}&`;
+    if (filters.date_to) url += `date_to=${encodeURIComponent(filters.date_to)}&`;
+    if (filters.page) url += `page=${filters.page}&`;
+    if (filters.limit) url += `limit=${filters.limit}&`;
+    const res = await fetch(url, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch contact messages');
+    return res.json();
+  },
+
+  updateContactMessage: async (id, payload) => {
+    const res = await fetch(`${API_BASE}/admin/contact-messages/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update message');
+    return data;
+  },
+
+  getContactStats: async () => {
+    const res = await fetch(`${API_BASE}/admin/contact-stats`, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch contact stats');
+    return res.json();
+  },
+
+  // ─── Driver Management ─────────────────────────────────────────────────────
+  getAllDrivers: async (filters = {}) => {
+    let url = `${API_BASE}/admin/drivers/all?`;
+    if (filters.status) url += `status=${encodeURIComponent(filters.status)}&`;
+    if (filters.search) url += `search=${encodeURIComponent(filters.search)}&`;
+    const res = await fetch(url, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch drivers');
+    return res.json();
+  },
+
+  getDriverStats: async (id) => {
+    const res = await fetch(`${API_BASE}/admin/drivers/${id}/stats`, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch driver stats');
+    return res.json();
+  },
+
+  createDriver: async (payload) => {
+    const res = await fetch(`${API_BASE}/admin/drivers/create`, {
+      method: 'POST',
+      headers: authHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to create driver');
+    return data;
+  },
+
+  updateDriver: async (id, payload) => {
+    const res = await fetch(`${API_BASE}/admin/drivers/${id}/update`, {
+      method: 'PUT',
+      headers: authHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update driver');
+    return data;
+  },
+
+  updateDriverStatus: async (id, status) => {
+    const res = await fetch(`${API_BASE}/admin/drivers/${id}/status`, {
+      method: 'PUT',
+      headers: authHeaders(true),
+      body: JSON.stringify({ status })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update driver status');
+    return data;
+  },
+
+  getDriverLicenceAlerts: async () => {
+    const res = await fetch(`${API_BASE}/admin/drivers/licence-alerts`, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch licence alerts');
+    return res.json();
+  },
+
+  // ─── Fleet Management ──────────────────────────────────────────────────────
+  getFleet: async (filters = {}) => {
+    let url = `${API_BASE}/admin/fleet?`;
+    if (filters.status) url += `status=${encodeURIComponent(filters.status)}&`;
+    if (filters.search) url += `search=${encodeURIComponent(filters.search)}&`;
+    const res = await fetch(url, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch fleet');
+    return res.json();
+  },
+
+  getVehicleDetails: async (id) => {
+    const res = await fetch(`${API_BASE}/admin/fleet/${id}`, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch vehicle details');
+    return res.json();
+  },
+
+  createVehicle: async (payload) => {
+    const res = await fetch(`${API_BASE}/admin/fleet`, {
+      method: 'POST',
+      headers: authHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to register vehicle');
+    return data;
+  },
+
+  updateVehicle: async (id, payload) => {
+    const res = await fetch(`${API_BASE}/admin/fleet/${id}`, {
+      method: 'PUT',
+      headers: authHeaders(true),
+      body: JSON.stringify(payload)
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Failed to update vehicle');
+    return data;
+  },
+
+  getFleetAlerts: async () => {
+    const res = await fetch(`${API_BASE}/admin/fleet/alerts`, { headers: authHeaders(true) });
+    if (!res.ok) throw new Error('Failed to fetch fleet alerts');
+    return res.json();
   }
 };
 

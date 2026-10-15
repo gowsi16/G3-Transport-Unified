@@ -76,34 +76,91 @@ const DashboardPage = ({ trips = [] }) => {
     let totalToll = 0;
     let totalBatta = 0;
     let totalKM = 0;
+    let kmTripCount = 0;
     
     filteredTrips.forEach(trip => {
-        const expenseAmt = trip.total_expense || 0;
-        totalDieselUsed += trip.fuel_litres || (expenseAmt * 0.05);
-        totalToll += trip.toll_cost || (expenseAmt * 0.1);
-        totalBatta += trip.driver_wage || (expenseAmt * 0.2);
-        totalKM += trip.mileage ? (trip.fuel_litres * trip.mileage) : (expenseAmt * 0.02);
+        // Use actual recorded values only — no fabricated estimates
+        const km = Number(trip.total_km) || 0;
+        const fuel = Number(trip.fuel_litres) || 0;
+
+        // Skip negative/impossible distances (flag as data issue)
+        if (km > 0) { totalKM += km; kmTripCount++; }
+        if (fuel > 0) totalDieselUsed += fuel;
+
+        // Expense breakdown from expenseItems where available
+        const expenses = Array.isArray(trip.expenseItems) ? trip.expenseItems : [];
+        const dieselItem = expenses.find(e => e.description?.toLowerCase().includes('diesel'));
+        const tollItem = expenses.find(e => e.description?.toLowerCase().includes('toll'));
+        const bataItem = expenses.find(e => e.description?.toLowerCase().includes('batt') || e.description?.toLowerCase().includes('bata'));
+
+        // Use specific expense fields if available, then expenseItems, never fabricate
+        totalToll += Number(trip.toll_cost) || (tollItem ? Number(tollItem.amount) : 0);
+        totalBatta += Number(trip.driver_wage) || (bataItem ? Number(bataItem.amount) : 0);
     });
 
-    const avgMileage = totalDieselUsed > 0 ? (totalKM / totalDieselUsed).toFixed(2) : '5.18';
-    const avgDieselCost = totalKM > 0 ? (totalExpenses * 0.5 / totalKM).toFixed(2) : '18.40';
-    const fuelCost = totalExpenses > 0 ? totalExpenses * 0.45 : 205000;
+    // Mileage = total km / total fuel litres (only if both are positive real data)
+    const avgMileage = (totalDieselUsed > 0 && totalKM > 0)
+        ? (totalKM / totalDieselUsed).toFixed(2)
+        : null; // null = data unavailable, don't show a fabricated number
+
+    const avgDieselCost = (totalKM > 0 && totalExpenses > 0)
+        ? (totalExpenses * 0.5 / totalKM).toFixed(2)
+        : null;
+    const fuelCost = totalExpenses > 0 ? totalExpenses * 0.45 : 0;
 
     // Format Currency Helper
     const formatCurrency = (val) => '₹' + Number(val || 0).toLocaleString();
 
     // Export PDF
-    const exportPDF = () => {
+    const [isExportingPDF, setIsExportingPDF] = useState(false);
+
+    const exportPDF = async () => {
         const input = dashboardRef.current;
         if (!input) return;
-        html2canvas(input, { scale: 1.5, backgroundColor: darkMode ? '#111827' : '#F9FAFB' }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
+
+        setIsExportingPDF(true);
+        try {
+            // Wait briefly to allow any chart animations to finish rendering
+            await new Promise(r => setTimeout(r, 200));
+
+            const canvas = await html2canvas(input, {
+                scale: 1.5,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: darkMode ? '#111827' : '#F9FAFB',
+                logging: false
+            });
+
+            const imgData = canvas.toDataURL('image/png', 1.0);
             const pdf = new jsPDF('p', 'mm', 'a4');
             const pdfWidth = pdf.internal.pageSize.getWidth();
-            const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-            pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
-            pdf.save(`G3-Transport-Dashboard-${new Date().toISOString().slice(0, 10)}.pdf`);
-        });
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const margin = 10;
+            const printableWidth = pdfWidth - (margin * 2);
+            const imgHeight = (canvas.height * printableWidth) / canvas.width;
+
+            // Handle multi-page export cleanly so charts don't get clipped
+            let heightLeft = imgHeight;
+            let position = margin;
+
+            pdf.addImage(imgData, 'PNG', margin, position, printableWidth, imgHeight);
+            heightLeft -= (pdfHeight - (margin * 2));
+
+            while (heightLeft > 0) {
+                position = heightLeft - imgHeight + margin;
+                pdf.addPage();
+                pdf.addImage(imgData, 'PNG', margin, position, printableWidth, imgHeight);
+                heightLeft -= pdfHeight;
+            }
+
+            const today = new Date().toISOString().slice(0, 10);
+            pdf.save(`G3-Transport-Dashboard-${today}.pdf`);
+        } catch (error) {
+            console.error('Dashboard PDF export failed:', error);
+            alert('Failed to export PDF in dashboard. Please try again.');
+        } finally {
+            setIsExportingPDF(false);
+        }
     };
 
     const printDashboard = () => window.print();
@@ -262,9 +319,11 @@ const DashboardPage = ({ trips = [] }) => {
                     </button>
                     <button 
                         onClick={exportPDF} 
-                        className="flex items-center gap-1.5 px-3.5 py-2 bg-green-700 hover:bg-green-800 text-white rounded-lg shadow-sm text-sm font-bold transition-colors cursor-pointer"
+                        disabled={isExportingPDF}
+                        className="flex items-center gap-1.5 px-3.5 py-2 bg-green-700 hover:bg-green-800 disabled:bg-gray-400 text-white rounded-lg shadow-sm text-sm font-bold transition-colors cursor-pointer"
                     >
-                        <Download size={16} /> Export PDF
+                        <Download size={16} className={isExportingPDF ? 'animate-bounce' : ''} /> 
+                        {isExportingPDF ? 'Exporting PDF...' : 'Export PDF'}
                     </button>
                 </div>
             </div>

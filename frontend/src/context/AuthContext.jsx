@@ -34,7 +34,7 @@ export const AuthProvider = ({ children }) => {
   const isAdmin = Boolean(adminUser && (adminUser.role === 'admin' || localStorage.getItem('g3_token')));
   const isCustomer = Boolean(customerUser);
 
-  // Admin login via /api/login
+  // Admin login via /api/login (direct password)
   const loginAdmin = async (username, password) => {
     try {
       const res = await fetch('/api/login', {
@@ -48,6 +48,7 @@ export const AuthProvider = ({ children }) => {
         setAdminUser(userData);
         localStorage.setItem('g3_user', JSON.stringify(userData));
         localStorage.setItem('g3_token', userData.token);
+        localStorage.setItem('g3_admin_token', userData.token);
         return true;
       }
       return false;
@@ -55,6 +56,22 @@ export const AuthProvider = ({ children }) => {
       console.error('Admin login error:', err);
       return false;
     }
+  };
+
+  // Complete Admin login after OTP verification
+  const completeAdminLogin = (userData, token) => {
+    const adminObj = {
+      username: userData.username,
+      name: userData.name || userData.username,
+      role: 'admin',
+      token: token,
+      email: userData.email
+    };
+    setAdminUser(adminObj);
+    localStorage.setItem('g3_user', JSON.stringify(adminObj));
+    localStorage.setItem('g3_token', token);
+    localStorage.setItem('g3_admin_token', token);
+    localStorage.setItem('g3_admin_user', JSON.stringify(adminObj));
   };
 
   const logoutAdmin = () => {
@@ -79,15 +96,27 @@ export const AuthProvider = ({ children }) => {
     localStorage.removeItem('customer_token');
   };
 
-  // Generic helpers
-  const login = loginAdmin; // Default to admin for legacy components
+  // Smart login helper: if customer payload is passed (has customer_id or phone), sets customer session
+  const login = (userData, token) => {
+    if (userData && (userData.customer_id || userData.role === 'customer' || userData.phone)) {
+      loginCustomer(userData, token);
+    } else if (typeof userData === 'string') {
+      // Legacy credentials call (username, password)
+      return loginAdmin(userData, token);
+    } else {
+      setAdminUser(userData);
+      localStorage.setItem('g3_user', JSON.stringify(userData));
+      if (token) localStorage.setItem('g3_token', token);
+    }
+  };
+
   const logout = () => {
     logoutAdmin();
     logoutCustomer();
   };
 
   // Active user depending on context
-  const user = adminUser || customerUser || null;
+  const user = customerUser || adminUser || null;
 
   const value = {
     user,
@@ -97,6 +126,7 @@ export const AuthProvider = ({ children }) => {
     isCustomer,
     isLoggedIn: Boolean(adminUser || customerUser),
     loginAdmin,
+    completeAdminLogin,
     logoutAdmin,
     loginCustomer,
     logoutCustomer,

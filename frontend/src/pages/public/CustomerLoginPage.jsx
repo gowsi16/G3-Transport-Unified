@@ -10,8 +10,18 @@ const inputCls = "w-full text-sm px-4 py-3 rounded-lg border outline-none bg-sla
 
 export default function Login() {
   const [searchParams] = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/book';
+  const rawRedirect = searchParams.get('redirect') || '/book';
+
+  // Sanitize redirect to prevent open-redirect vulnerabilities (must start with / and not //)
+  const sanitizeRedirect = (path) => {
+    if (!path || typeof path !== 'string') return '/book';
+    if (!path.startsWith('/') || path.startsWith('//') || path.startsWith('/\\')) return '/book';
+    return path;
+  };
+
+  const redirectPath = sanitizeRedirect(rawRedirect);
   const isBookingRedirect = redirectPath.includes('book');
+  const isTrackingRedirect = redirectPath.includes('track');
 
   const [mode, setMode] = useState('login'); // 'login' | 'register'
   const [loading, setLoading] = useState(false);
@@ -59,7 +69,7 @@ export default function Login() {
         throw new Error(data.error || 'Failed to login');
       }
 
-      login(data.customer);
+      login(data.customer, data.token);
       setSuccessMsg('Logged in successfully! Redirecting...');
       setTimeout(() => {
         navigate(redirectPath);
@@ -94,7 +104,7 @@ export default function Login() {
         throw new Error(data.error || 'Failed to register account');
       }
 
-      login(data.customer);
+      login(data.customer, data.token);
       setSuccessMsg('Account created successfully! Redirecting to booking...');
       setTimeout(() => {
         navigate(redirectPath);
@@ -108,7 +118,7 @@ export default function Login() {
 
   return (
     <div className="w-full max-w-lg mx-auto pt-6 pb-12 animate-slide-up">
-      {/* Alert if redirected from booking form */}
+      {/* Alert if redirected from booking or tracking form */}
       {isBookingRedirect && (
         <div className="mb-6 p-4 rounded-xl bg-green-50 border border-green-200 flex items-start gap-3 shadow-sm animate-bounce-short">
           <ShieldCheck className="text-green-700 mt-0.5 shrink-0" size={20} />
@@ -117,7 +127,21 @@ export default function Login() {
               Customer Login Required Before Booking
             </h4>
             <p style={fontBody} className="text-xs text-green-800 mt-0.5 leading-relaxed">
-              For security and freight tracking, you must log in to your account before accessing the lorry booking form.
+              For security, verified pricing, and freight consignment safety, please log in or create an account. You will return directly to your booking.
+            </p>
+          </div>
+        </div>
+      )}
+
+      {isTrackingRedirect && (
+        <div className="mb-6 p-4 rounded-xl bg-blue-50 border border-blue-200 flex items-start gap-3 shadow-sm animate-bounce-short">
+          <ShieldCheck className="text-blue-700 mt-0.5 shrink-0" size={20} />
+          <div>
+            <h4 style={fontDisplay} className="text-sm font-bold text-blue-900">
+              Customer Login Required to Track Orders
+            </h4>
+            <p style={fontBody} className="text-xs text-blue-800 mt-0.5 leading-relaxed">
+              To protect customer privacy and confidential dispatch details, please sign in to view your real-time shipment status.
             </p>
           </div>
         </div>

@@ -14,7 +14,7 @@ export default function PublicNavbar() {
     { name: 'Home', path: '/' },
     { name: 'Book Lorry', path: '/book' },
     { name: 'Track Order', path: '/track' },
-    { name: 'About', path: '/about' },
+    { name: 'About Us', path: '/about' },
   ];
 
   return (
@@ -33,19 +33,26 @@ export default function PublicNavbar() {
 
         {/* Navigation Links */}
         <div className="flex items-center gap-6 text-sm font-medium">
-          {links.map(l => (
-            <Link 
-              key={l.path} 
-              to={l.path} 
-              className={`transition-colors hover:text-green-700 ${
-                location.pathname === l.path 
-                  ? 'text-green-800 font-bold border-b-2 border-green-700 pb-0.5' 
-                  : 'text-slate-600'
-              }`}
-            >
-              {l.name}
-            </Link>
-          ))}
+          {links.map(l => {
+            let targetPath = l.path;
+            if (!isCustomer && (l.path === '/book' || l.path === '/track')) {
+              targetPath = `/login?redirect=${encodeURIComponent(l.path)}`;
+            }
+
+            return (
+              <Link 
+                key={l.path} 
+                to={targetPath} 
+                className={`transition-colors hover:text-green-700 ${
+                  location.pathname === l.path 
+                    ? 'text-green-800 font-bold border-b-2 border-green-700 pb-0.5' 
+                    : 'text-slate-600'
+                }`}
+              >
+                {l.name}
+              </Link>
+            );
+          })}
 
           {/* Customer Auth State */}
           {isCustomer && customerUser ? (

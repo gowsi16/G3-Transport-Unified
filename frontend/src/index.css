@@ -60,6 +60,20 @@ body {
   background: linear-gradient(135deg, #0E5C2F, #0A4322);
 }
 
+.btn-secondary {
+  background: #147D40;
+  color: white;
+  box-shadow: 0 4px 14px 0 rgba(20, 125, 64, 0.25);
+  transition: all 0.2s ease;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #0E5C2F;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px 0 rgba(20, 125, 64, 0.35);
+}
+
+
 .hero-bg {
   background-image: url('/hero-bg.jpg');
   background-size: cover;
@@ -84,3 +98,34 @@ body {
 .animate-slide-up {
   animation: slideUp 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
+
+/* Print Styles for Invoices and Reports */
+@media print {
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  
+  /* Hide all app chrome: navbars, sidebars, buttons, footers */
+  nav, header, footer, .no-print, button, .admin-navbar, .public-navbar {
+    display: none !important;
+  }
+
+  /* Printable invoice container */
+  .printable-invoice-area {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    width: 100% !important;
+    margin: 0 !important;
+    padding: 10mm !important;
+    box-shadow: none !important;
+    border: none !important;
+  }
+
+  @page {
+    size: A4 portrait;
+    margin: 10mm;
+  }
+}
+

@@ -40,6 +40,7 @@ export default function App() {
           <Route path="/book" element={<PublicLayout><BookingPage /></PublicLayout>} />
           <Route path="/track" element={<PublicLayout><TrackingPage /></PublicLayout>} />
           <Route path="/about" element={<PublicLayout><AboutPage /></PublicLayout>} />
+          <Route path="/contact" element={<Navigate to="/about" replace />} />
           <Route path="/login" element={<PublicLayout><CustomerLoginPage /></PublicLayout>} />
 
           {/* Admin Auth Route */}
@@ -52,7 +53,11 @@ export default function App() {
           <Route path="/admin/trips" element={<AdminPortal initialPage="Trips" />} />
           <Route path="/admin/invoices" element={<AdminPortal initialPage="Invoices" />} />
           <Route path="/admin/ocr" element={<AdminPortal initialPage="OCR" />} />
-          <Route path="/admin/contact" element={<AdminPortal initialPage="Contact" />} />
+          <Route path="/admin/fleet-drivers" element={<AdminPortal initialPage="FleetDrivers" />} />
+          <Route path="/admin/inbox" element={<AdminPortal initialPage="Inbox" />} />
+          <Route path="/admin/drivers" element={<Navigate to="/admin/fleet-drivers" replace />} />
+          <Route path="/admin/fleet" element={<Navigate to="/admin/fleet-drivers" replace />} />
+          <Route path="/admin/support" element={<Navigate to="/admin/inbox" replace />} />
           <Route path="/admin/home" element={<AdminPortal initialPage="Home" />} />
 
           {/* Legacy Redirects */}

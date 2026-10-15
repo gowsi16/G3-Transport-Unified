@@ -16,12 +16,13 @@ export default function AdminNavbar({ currentPage, setCurrentPage }) {
   const bellDropdownRef = useRef(null);
 
   const navItems = [
-    { name: 'Dashboard', label: 'Dashboard' },
-    { name: 'Orders', label: 'Orders' },
-    { name: 'Trips', label: 'Trips' },
-    { name: 'Invoices', label: 'Invoices' },
-    { name: 'OCR', label: 'OCR' },
-    { name: 'Contact', label: 'Contact' }
+    { name: 'Dashboard', label: 'Dashboard', path: '/admin/dashboard' },
+    { name: 'Orders', label: 'Orders', path: '/admin/orders' },
+    { name: 'Trips', label: 'Trips', path: '/admin/trips' },
+    { name: 'Invoices', label: 'Invoices', path: '/admin/invoices' },
+    { name: 'OCR', label: 'OCR', path: '/admin/ocr' },
+    { name: 'FleetDrivers', label: 'Fleet & Drivers', path: '/admin/fleet-drivers' },
+    { name: 'Inbox', label: 'Inbox', path: '/admin/inbox' }
   ];
 
   // Fetch Notifications
@@ -81,7 +82,7 @@ export default function AdminNavbar({ currentPage, setCurrentPage }) {
 
   const handleNotificationClick = (notif) => {
     if (!notif.is_read) {
-      bookingApi.markNotificationRead(notif.id).catch(() => {});
+      bookingApi.markNotificationRead(notif.id).catch(() => { });
       setNotifications(prev => prev.map(n => n.id === notif.id ? { ...n, is_read: 1 } : n));
       setUnreadCount(prev => Math.max(0, prev - 1));
     }
@@ -90,9 +91,15 @@ export default function AdminNavbar({ currentPage, setCurrentPage }) {
     if (setCurrentPage) setCurrentPage('Orders');
   };
 
-  const handleNavClick = (itemName) => {
+  const handleNavClick = (item) => {
+    const itemName = typeof item === 'object' ? item.name : item;
+    const itemPath = typeof item === 'object' && item.path ? item.path : (
+      itemName === 'FleetDrivers' ? '/admin/fleet-drivers' :
+      itemName === 'Inbox' ? '/admin/inbox' :
+      `/admin/${itemName.toLowerCase()}`
+    );
     if (setCurrentPage) setCurrentPage(itemName);
-    navigate(`/admin/${itemName.toLowerCase()}`);
+    navigate(itemPath);
     setMobileMenuOpen(false);
   };
 
@@ -125,16 +132,15 @@ export default function AdminNavbar({ currentPage, setCurrentPage }) {
             <div className="hidden lg:block ml-8">
               <div className="flex items-baseline space-x-1">
                 {navItems.map((item) => {
-                  const isActive = currentPage === item.name || (item.name === 'Dashboard' && currentPage === 'Home');
+                  const isActive = currentPage === item.name || (item.name === 'Dashboard' && currentPage === 'Home') || (item.name === 'FleetDrivers' && (currentPage === 'Fleet' || currentPage === 'Drivers' || currentPage === 'FleetDrivers'));
                   return (
                     <button
                       key={item.name}
-                      onClick={() => handleNavClick(item.name)}
-                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${
-                        isActive
-                          ? 'bg-green-700 text-white shadow-sm'
-                          : 'text-gray-600 hover:text-green-700 hover:bg-green-50'
-                      }`}
+                      onClick={() => handleNavClick(item)}
+                      className={`px-3 py-1.5 rounded-lg text-sm font-semibold transition-colors flex items-center gap-1.5 cursor-pointer ${isActive
+                        ? 'bg-green-700 text-white shadow-sm'
+                        : 'text-gray-600 hover:text-green-700 hover:bg-green-50'
+                        }`}
                     >
                       <span>{item.label}</span>
                     </button>
@@ -208,16 +214,14 @@ export default function AdminNavbar({ currentPage, setCurrentPage }) {
                         <div
                           key={n.id}
                           onClick={() => handleNotificationClick(n)}
-                          className={`px-4 py-3 hover:bg-green-50/50 cursor-pointer transition-colors flex items-start gap-3 ${
-                            n.is_read ? 'opacity-70 bg-white' : 'bg-green-50/20'
-                          }`}
+                          className={`px-4 py-3 hover:bg-green-50/50 cursor-pointer transition-colors flex items-start gap-3 ${n.is_read ? 'opacity-70 bg-white' : 'bg-green-50/20'
+                            }`}
                         >
-                          <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${
-                            n.type === 'new_booking' ? 'bg-amber-100 text-amber-700' :
+                          <div className={`mt-0.5 p-1.5 rounded-full shrink-0 ${n.type === 'new_booking' ? 'bg-amber-100 text-amber-700' :
                             n.type === 'assignment' ? 'bg-green-100 text-green-700' :
-                            n.type === 'cancellation' ? 'bg-red-100 text-red-700' :
-                            'bg-blue-100 text-blue-700'
-                          }`}>
+                              n.type === 'cancellation' ? 'bg-red-100 text-red-700' :
+                                'bg-blue-100 text-blue-700'
+                            }`}>
                             <Package size={14} />
                           </div>
                           <div className="flex-1 min-w-0">
@@ -309,19 +313,21 @@ export default function AdminNavbar({ currentPage, setCurrentPage }) {
       {/* Mobile Menu Dropdown */}
       {mobileMenuOpen && (
         <div className="lg:hidden border-t border-gray-100 bg-white px-4 pt-2 pb-4 space-y-1">
-          {navItems.map((item) => (
-            <button
-              key={item.name}
-              onClick={() => handleNavClick(item.name)}
-              className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${
-                currentPage === item.name
+          {navItems.map((item) => {
+            const isActive = currentPage === item.name || (item.name === 'FleetDrivers' && (currentPage === 'Fleet' || currentPage === 'Drivers' || currentPage === 'FleetDrivers'));
+            return (
+              <button
+                key={item.name}
+                onClick={() => handleNavClick(item)}
+                className={`block w-full text-left px-3 py-2 rounded-lg text-sm font-semibold ${isActive
                   ? 'bg-green-700 text-white'
                   : 'text-gray-700 hover:bg-green-50 hover:text-green-700'
-              }`}
-            >
-              {item.label}
-            </button>
-          ))}
+                  }`}
+              >
+                {item.label}
+              </button>
+            );
+          })}
           <Link
             to="/"
             onClick={() => setMobileMenuOpen(false)}

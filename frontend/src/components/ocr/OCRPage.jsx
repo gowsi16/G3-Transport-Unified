@@ -4,10 +4,10 @@ import InputField from '../common/InputField';
 import EditableField from './EditableField';
 import EditableItem from './EditableItem';
 
-import { api } from '../../utils/api';
+import { api } from '../../services/api';
 
-const OCRPage = ({ onSaveTrip, showNotification, currentUser, fetchTrips }) => {
-    const [mode, setMode] = useState('excel'); // 'ocr', 'manual' or 'excel'
+const OCRPage = ({ onSaveTrip, onAddTrip, showNotification, currentUser, fetchTrips }) => {
+    const [mode, setMode] = useState('ocr'); // default to 'ocr' for /admin/ocr
     const [imagePreview, setImagePreview] = useState(null);
     const [isProcessing, setIsProcessing] = useState(false);
     const [billData, setBillData] = useState(null);
@@ -131,12 +131,19 @@ const OCRPage = ({ onSaveTrip, showNotification, currentUser, fetchTrips }) => {
         setManualForm(prev => ({...prev, [name]: type === 'number' ? parseInt(value, 10) || 0 : value }));
     };
 
-    const handleManualSave = () => {
+    const [isSaving, setIsSaving] = useState(false);
+
+    const handleManualSave = async () => {
+        if (!manualForm.vehicleNo) {
+            showNotification('Vehicle number is required', 'error');
+            return;
+        }
+        setIsSaving(true);
         const newTrip = {
             id: `MANUAL-${manualForm.billNo || Date.now()}`,
-            date: manualForm.date,
-            from_city: 'Manual',
-            to_city: 'Entry',
+            date: manualForm.date || new Date().toISOString().split('T')[0],
+            from_city: 'Salem',
+            to_city: 'Chennai',
             vehicle_no: manualForm.vehicleNo,
             driverName: manualForm.driverName,
             revenue: manualForm.totalIncome,
@@ -156,27 +163,72 @@ const OCRPage = ({ onSaveTrip, showNotification, currentUser, fetchTrips }) => {
                 { description: 'Fuel', amount: manualForm.fuel },
                 { description: 'Other Expense', amount: manualForm.other },
             ].filter(item => item.amount > 0),
-            notes: `Manual entry by ${currentUser.name}.`
+            notes: `Manual entry by ${currentUser?.name || 'Admin'}.`
         };
-        onSaveTrip(newTrip);
-        setManualForm({ billNo: '', date: '', vehicleNo: '', driverName: '', income1: 0, income2: 0, pooja: 0, commission: 0, unloading: 0, police: 0, parking: 0, tarpaulin: 0, batta: 0, toll: 0, fuel: 0, other: 0, totalIncome: 0, totalExpenses: 0, remaining: 0 });
+
+        try {
+            const saveHandler = onSaveTrip || onAddTrip;
+            if (saveHandler) {
+                await saveHandler(newTrip);
+            }
+            setManualForm({ billNo: '', date: '', vehicleNo: '', driverName: '', income1: 0, income2: 0, pooja: 0, commission: 0, unloading: 0, police: 0, parking: 0, tarpaulin: 0, batta: 0, toll: 0, fuel: 0, other: 0, totalIncome: 0, totalExpenses: 0, remaining: 0 });
+            if (fetchTrips) fetchTrips();
+        } catch (error) {
+            console.error('Manual save failed:', error);
+        } finally {
+            setIsSaving(false);
+        }
     };
 
-    const handleSaveToDatabase = () => {
+    const handleSaveToDatabase = async () => {
         if (!billData) return;
+        if (!billData.vehicleNo) {
+            showNotification('Vehicle number is required', 'error');
+            return;
+        }
+
+        // Validate financial balance
+        const computedIncome = billData.incomeItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const computedExpense = billData.expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+        const computedBalance = computedIncome - computedExpense;
+
+        setIsSaving(true);
         const newTrip = {
-            id: `BILL-${billData.billNo}`,
-            date: billData.date.split('/').reverse().join('-'),
+            id: `BILL-${billData.billNo || Date.now()}`,
+            date: billData.date ? (billData.date.includes('/') ? billData.date.split('/').reverse().join('-') : billData.date) : new Date().toISOString().split('T')[0],
             from_city: 'Salem',
             to_city: 'Chennai',
             vehicle_no: billData.vehicleNo,
             driverName: billData.driverName,
-            revenue: billData.totalIncome,
+            revenue: computedIncome,
             incomeItems: billData.incomeItems,
             expenseItems: billData.expenseItems,
-            notes: `OCR entry for driver ${billData.driverName}.`
+            notes: `OCR entry for driver ${billData.driverName}. Balance: ₹${computedBalance.toLocaleString()}`
         };
-        onSaveTrip(newTrip);
+
+        try {
+            const saveHandler = onSaveTrip || onAddTrip;
+            if (saveHandler) {
+                await saveHandler(newTrip);
+            } else {
+                await api.createTrip(newTrip);
+            }
+            if (showNotification) {
+                showNotification(`Trip #${newTrip.id} successfully saved to database!`, 'success');
+            }
+            if (fetchTrips) fetchTrips();
+            // Reset OCR preview to allow next bill upload
+            setBillData(null);
+            setImagePreview(null);
+            setIsEditing(false);
+        } catch (error) {
+            console.error('OCR save to database failed:', error);
+            if (showNotification) {
+                showNotification(error.message || 'Failed to save OCR trip to database.', 'error');
+            }
+        } finally {
+            setIsSaving(false);
+        }
     };
 
     const handleExcelUpload = async (e) => {
@@ -313,8 +365,21 @@ const OCRPage = ({ onSaveTrip, showNotification, currentUser, fetchTrips }) => {
                                 </div>
                                 {!isEditing && (
                                     <div className="flex space-x-4 pt-4">
-                                        <button onClick={handleSaveToDatabase} className="w-full py-2 px-4 bg-green-700 text-white hover:bg-green-800 transition-colors">
-                                            Save to Database
+                                        <button 
+                                            onClick={handleSaveToDatabase} 
+                                            disabled={isSaving}
+                                            className="w-full py-2.5 px-4 bg-green-700 text-white rounded-lg font-semibold hover:bg-green-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all flex items-center justify-center gap-2 shadow-sm"
+                                        >
+                                            {isSaving ? (
+                                                <>
+                                                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                                                    Saving to Database...
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <Save size={16} /> Save to Database
+                                                </>
+                                            )}
                                         </button>
                                     </div>
                                 )}

@@ -10,7 +10,11 @@ const authRoutes = require('./routes/authRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const tripRoutes = require('./routes/tripRoutes');
+const contactRoutes = require('./routes/contactRoutes');
+const driverRoutes = require('./routes/driverRoutes');
+const fleetRoutes = require('./routes/fleetRoutes');
 const db = require('./database/db');
+const { loadPricingFromDb } = require('./services/pricingConfig');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -38,6 +42,9 @@ app.get('/api/health', (req, res) => {
 app.use('/api', authRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', adminRoutes);
+app.use('/api', contactRoutes);
+app.use('/api', driverRoutes);
+app.use('/api', fleetRoutes);
 app.use('/api/trips', tripRoutes);
 
 // Global Error Handler
@@ -48,6 +55,9 @@ app.use((err, req, res, next) => {
     path: req.originalUrl
   });
 });
+
+// Load persisted pricing config from DB on startup
+loadPricingFromDb(db);
 
 // Start Server
 if (require.main === module) {

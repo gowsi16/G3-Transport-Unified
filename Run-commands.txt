@@ -1,0 +1,67 @@
+Option 1: Run Both Together (Recommended Launcher)
+
+From the project root directory (`d:\Project\G3-Integration`), run:
+
+```powershell
+npm run dev
+```
+*(or `npm start`)*
+
+This starts both the Express backend (port 5000) and the Vite frontend (port 3000) simultaneously with unified console output.
+
+---
+
+### Option 2: Run Separately in Individual Terminals
+
+#### 1. Backend Server (Port 5000)
+
+Open a terminal and run:
+
+```powershell
+cd d:\Project\G3-Integration\backend
+npm start
+```
+
+*Or from the root directory:*
+```powershell
+npm run start:backend
+```
+
+- **URL:** [http://localhost:5000](http://localhost:5000)
+- **API Base:** [http://localhost:5000/api](http://localhost:5000/api)
+
+---
+
+#### 2. Frontend Application (Port 3000)
+
+Open a second terminal and run:
+
+```powershell
+cd d:\Project\G3-Integration\frontend
+npm run dev
+```
+
+*Or from the root directory:*
+```powershell
+npm run start:frontend
+```
+
+- **Booking Website & App:** [http://localhost:3000](http://localhost:3000)
+- **Admin Portal:** [http://localhost:3000/admin](http://localhost:3000/admin)
+
+---
+
+### Additional Helpful Commands
+
+- **Run Automated Test Suite:**
+  ```powershell
+  node backend/tests/test_suite.js
+  ```
+- **Build Frontend Production Bundle:**
+  ```powershell
+  npm run build
+  ```
+- **Test Backend API Endpoint with PowerShell:**
+  ```powershell
+  Invoke-RestMethod "http://localhost:5000/api/availability?pickup=Salem&delivery=Chennai&expected_date=2026-10-18&weight=3500&weight_unit=kg&helpers=1"
+  ```

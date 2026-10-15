@@ -123,27 +123,52 @@ export default function Booking() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
 
-  // Form State (Customer doesn't pick lorry!)
-  const [form, setForm] = useState({
-    pickup: "",
-    delivery: "",
-    expected_date: new Date().toISOString().split("T")[0],
-    load_type: "",
-    weight_val: 3500,
-    weight_unit: "kg", // "kg" | "tons"
-    helpers: 0,
-    name: "",
-    phone: "",
-    email: "",
-    customer_address: "",
-    pickup_address: "",
-    delivery_address: "",
-    instructions: ""
+  // Enforce immediate redirect to login if unauthenticated
+  useEffect(() => {
+    if (!isLoggedIn) {
+      navigate("/login?redirect=/book", { replace: true });
+    }
+  }, [isLoggedIn, navigate]);
+
+  // Load draft booking from sessionStorage if available
+  const [form, setForm] = useState(() => {
+    try {
+      const saved = sessionStorage.getItem("g3_booking_draft");
+      if (saved) {
+        return {
+          ...JSON.parse(saved),
+          expected_date: JSON.parse(saved).expected_date || new Date().toISOString().split("T")[0]
+        };
+      }
+    } catch (e) {}
+    return {
+      pickup: "",
+      delivery: "",
+      expected_date: new Date().toISOString().split("T")[0],
+      load_type: "",
+      weight_val: 3500,
+      weight_unit: "kg", // "kg" | "tons"
+      helpers: 0,
+      name: "",
+      phone: "",
+      email: "",
+      customer_address: "",
+      pickup_address: "",
+      delivery_address: "",
+      instructions: ""
+    };
   });
 
   const [searchResult, setSearchResult] = useState(null);
   const [bookingResult, setBookingResult] = useState(null);
   const [fareBreakdown, setFareBreakdown] = useState(null);
+
+  // Keep sessionStorage in sync
+  useEffect(() => {
+    try {
+      sessionStorage.setItem("g3_booking_draft", JSON.stringify(form));
+    } catch (e) {}
+  }, [form]);
 
   // Sync user profile if logged in
   useEffect(() => {
@@ -206,14 +231,15 @@ export default function Booking() {
     setLoading(true);
     setErrorMsg("");
     try {
-      const url = `/api/availability?pickup=${encodeURIComponent(form.pickup)}&delivery=${encodeURIComponent(form.delivery)}&expected_date=${encodeURIComponent(form.expected_date)}`;
+      const url = `/api/availability?pickup=${encodeURIComponent(form.pickup.trim())}&delivery=${encodeURIComponent(form.delivery.trim())}&expected_date=${encodeURIComponent(form.expected_date)}&weight=${encodeURIComponent(form.weight_val)}&weight_unit=${encodeURIComponent(form.weight_unit)}&helpers=${encodeURIComponent(form.helpers)}`;
       const res = await fetch(url);
       if (!res.ok) {
-        throw new Error("Unable to calculate road distance and fleet availability");
+        const errJson = await res.json().catch(() => ({}));
+        throw new Error(errJson.error || "Unable to calculate road distance and fleet availability");
       }
       const data = await res.json();
       setSearchResult(data);
-      setStep(2);
+      // If user is already on step 1, show the result panel right beneath the calculate button
     } catch (err) {
       console.error(err);
       setErrorMsg("Routing service error: " + err.message);
@@ -278,6 +304,9 @@ export default function Booking() {
         breakdown: data.breakdown,
         capacityAlert: data.capacityAlert
       });
+      try {
+        sessionStorage.removeItem("g3_booking_draft");
+      } catch (e) {}
       setStep(5);
     } catch (err) {
       console.error(err);
@@ -443,8 +472,11 @@ export default function Booking() {
                   <button
                     key={i}
                     type="button"
-                    onClick={() => setForm({ ...form, pickup: r.from, delivery: r.to })}
-                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-green-600 hover:text-green-700 transition-colors shadow-2xs"
+                    onClick={() => {
+                      setForm(prev => ({ ...prev, pickup: r.from, delivery: r.to }));
+                      setErrorMsg("");
+                    }}
+                    className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-white border border-slate-200 text-slate-700 hover:border-green-600 hover:text-green-700 transition-colors shadow-2xs cursor-pointer"
                   >
                     {r.from} → {r.to}
                   </button>
@@ -452,25 +484,103 @@ export default function Booking() {
               </div>
             </div>
 
-            <button
-              onClick={handleSearchRoute} 
-              disabled={!form.pickup || !form.delivery || loading}
-              style={fontDisplay}
-              className={`w-full px-6 py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all shadow-md ${
-                (!form.pickup || !form.delivery || loading) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'btn-secondary text-white'
-              }`}
-            >
-              {loading ? (
-                <>
-                  <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-                  Calculating Highway Distance...
-                </>
-              ) : (
-                <>
-                  Calculate Road Distance & Check Fleet Availability <Search size={18} />
-                </>
+            <div className="space-y-4">
+              <button
+                type="button"
+                onClick={handleSearchRoute} 
+                disabled={!form.pickup || !form.delivery || loading}
+                style={fontDisplay}
+                className={`w-full px-6 py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all shadow-md ${
+                  (!form.pickup || !form.delivery || loading) 
+                    ? 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200' 
+                    : 'bg-green-700 hover:bg-green-800 active:bg-green-900 text-white cursor-pointer hover:shadow-lg'
+                }`}
+              >
+                {loading ? (
+                  <>
+                    <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Calculating Genuine Highway Distance & Checking Fleet...
+                  </>
+                ) : (
+                  <>
+                    Calculate Road Distance & Check Fleet Availability <Search size={18} />
+                  </>
+                )}
+              </button>
+
+              {/* Requirement 2.F: Result Panel directly below route form */}
+              {searchResult && (
+                <div className="mt-6 p-6 rounded-2xl bg-slate-900 text-white border border-slate-800 shadow-xl animate-slide-up">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b border-slate-800 gap-3">
+                    <div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-green-400 bg-green-950/80 px-2 py-0.5 rounded border border-green-800">
+                          {searchResult.routeType || "Highway Road Route"}
+                        </span>
+                        <span className="text-xs text-slate-400">({searchResult.source})</span>
+                      </div>
+                      <h3 style={fontDisplay} className="text-xl font-bold text-white mt-1.5 flex items-center gap-2">
+                        <span>{searchResult.pickup}</span>
+                        <ArrowRight size={18} className="text-green-400 shrink-0" />
+                        <span>{searchResult.delivery}</span>
+                      </h3>
+                    </div>
+                    <div className="sm:text-right">
+                      <span className="text-xs uppercase text-slate-400 font-bold tracking-wider block">Road Distance</span>
+                      <span style={fontDisplay} className="text-3xl font-extrabold text-green-400">
+                        {searchResult.distance}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Route & Fleet Metric Grid */}
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 py-4 border-b border-slate-800 text-xs">
+                    <div>
+                      <span className="text-slate-400 block mb-0.5 uppercase tracking-wider text-[10px] font-bold">Estimated Travel Time</span>
+                      <span className="text-white font-bold text-sm">{searchResult.estimatedTime || "4-5 hrs"}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-0.5 uppercase tracking-wider text-[10px] font-bold">Requested Date</span>
+                      <span className="text-white font-bold text-sm">{form.expected_date}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-0.5 uppercase tracking-wider text-[10px] font-bold">Available Lorries</span>
+                      <span className="text-green-400 font-bold text-sm">
+                        {searchResult.availableLorriesCount !== undefined ? `${searchResult.availableLorriesCount} Lorry (Ready)` : "Fleet Available"}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-slate-400 block mb-0.5 uppercase tracking-wider text-[10px] font-bold">Base Estimated Fare</span>
+                      <span className="text-green-400 font-bold text-sm">
+                        ₹{(searchResult.estimatedFare?.totalEstimatedFare || 2000).toLocaleString('en-IN')}*
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Fleet Availability Status Note */}
+                  <div className="pt-4 pb-2">
+                    <p className="text-xs text-slate-300 leading-relaxed">
+                      <strong className="text-white">Fleet Dispatch Status: </strong> 
+                      {searchResult.fleetStatusNote || "Company lorries are available. Dispatch administrator will assign vehicle and driver."}
+                    </p>
+                  </div>
+
+                  <div className="pt-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+                    <span className="text-[11px] text-slate-400">
+                      *Initial estimate for standard 3.5-Ton load. Customize load weight and helpers in the next step.
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setStep(2)}
+                      style={fontDisplay}
+                      className="w-full sm:w-auto px-6 py-3 rounded-xl bg-green-500 hover:bg-green-400 active:bg-green-600 text-slate-950 font-bold text-sm flex items-center justify-center gap-2 transition-all shadow-md shrink-0 cursor-pointer"
+                    >
+                      Continue to Consignment & Helpers <ChevronRight size={16} />
+                    </button>
+                  </div>
+                </div>
               )}
-            </button>
+            </div>
           </div>
         )}
 

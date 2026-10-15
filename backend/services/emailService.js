@@ -1,12 +1,14 @@
 const nodemailer = require('nodemailer');
 
 function getMailerConfig() {
-  const user = (process.env.GMAIL_USER || '').trim();
-  const rawPass = (process.env.GMAIL_APP_PASSWORD || '').trim();
+  const user = (process.env.SMTP_USER || process.env.GMAIL_USER || '').trim();
+  const rawPass = (process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD || '').trim();
   const pass = rawPass.replace(/\s+/g, '');
-  const isConfigured = user && pass && pass !== 'your_16_digit_google_app_password';
+  const host = (process.env.SMTP_HOST || 'smtp.gmail.com').trim();
+  const port = parseInt(process.env.SMTP_PORT, 10) || 587;
+  const isConfigured = user && pass && pass !== 'demo_pass' && pass !== 'your_16_digit_google_app_password';
 
-  return { user, pass, isConfigured };
+  return { user, pass, host, port, isConfigured };
 }
 
 function maskEmail(email) {
@@ -19,27 +21,28 @@ function maskEmail(email) {
 }
 
 async function sendAdminOtpEmail(toEmail, otpCode) {
-  const { user, pass, isConfigured } = getMailerConfig();
+  const { user, pass, host, port, isConfigured } = getMailerConfig();
 
   // Print OTP to server console for guaranteed local visibility / testing
   console.log('--------------------------------------------------');
   console.log(`[ADMIN OTP NOTIFICATION]`);
   console.log(`Recipient Email: ${toEmail}`);
   console.log(`6-Digit OTP Code: ${otpCode}`);
-  console.log(`Valid for: 5 Minutes (Max 5 Attempts)`);
+  console.log(`Valid for: 5 Minutes (Max 5 Attempts, Rate-Limited)`);
   console.log('--------------------------------------------------');
 
   if (!isConfigured) {
     return {
       sent: false,
       devMode: true,
-      reason: 'GMAIL_APP_PASSWORD not set or using placeholder in backend/.env',
-      otp: otpCode // Available for local dev fallback
+      reason: 'SMTP credentials set to development demo_pass. OTP printed to server console.'
     };
   }
 
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: host,
+    port: port,
+    secure: port === 465,
     auth: { user, pass }
   });
 
@@ -100,8 +103,7 @@ async function sendAdminOtpEmail(toEmail, otpCode) {
     return {
       sent: false,
       devMode: true,
-      error: err.message,
-      otp: otpCode // Available for local dev fallback
+      error: err.message
     };
   }
 }

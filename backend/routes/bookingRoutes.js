@@ -9,6 +9,7 @@ const {
   normalizeWeightToKg, 
   calculateTransportFare 
 } = require('../services/pricingConfig');
+const { requireCustomerAuth } = require('../middleware/authMiddleware');
 
 // 1. Pricing Rules Endpoint
 router.get('/pricing-rules', (req, res) => {
@@ -37,7 +38,7 @@ router.post('/calculate-price', (req, res) => {
 
 // 3. Availability & Road Route Endpoint
 router.get('/availability', async (req, res) => {
-  const { pickup, delivery, expected_date } = req.query;
+  const { pickup, delivery, expected_date, weight, weight_unit, helpers } = req.query;
 
   if (!pickup || !delivery) {
     return res.status(400).json({ error: 'Pickup and Delivery locations are required.' });
@@ -46,6 +47,13 @@ router.get('/availability', async (req, res) => {
   try {
     const roadResult = await calculateActualRoadDistance(pickup, delivery);
     const distanceValue = roadResult.distanceKm;
+
+    const normalizedWeight = normalizeWeightToKg(weight || 3500, weight_unit || "kg");
+    const fareEstimate = calculateTransportFare({
+      distanceKm: distanceValue,
+      weightKg: normalizedWeight,
+      helpers: parseInt(helpers, 10) || 0
+    });
 
     db.all("SELECT * FROM vehicles ORDER BY capacity_kg DESC", [], (err, vehicles) => {
       if (err) return res.status(500).json({ error: err.message });
@@ -79,6 +87,7 @@ router.get('/availability', async (req, res) => {
               delivery,
               distance: `${distanceValue} km`,
               distanceValue,
+              estimatedTime: roadResult.estimatedTime || "4-5 hrs",
               routeType: roadResult.routeType,
               source: roadResult.source,
               fleet: fleetStatus,
@@ -86,7 +95,8 @@ router.get('/availability', async (req, res) => {
               fleetStatusNote: availableCount > 0 
                 ? `${availableCount} company lorry available for this date. Admin will assign vehicle upon booking review.`
                 : `Both company lorries are currently assigned or in service on ${expected_date}. You may still submit your booking for priority scheduling or select an alternate date.`,
-              pricing: getPricingConfig()
+              pricing: getPricingConfig(),
+              estimatedFare: fareEstimate
             });
           }
         );
@@ -105,10 +115,12 @@ router.get('/availability', async (req, res) => {
           delivery,
           distance: `${distanceValue} km`,
           distanceValue,
+          estimatedTime: roadResult.estimatedTime || "4-5 hrs",
           routeType: roadResult.routeType,
           source: roadResult.source,
           fleet: fleetStatus,
-          pricing: getPricingConfig()
+          pricing: getPricingConfig(),
+          estimatedFare: fareEstimate
         });
       }
     });
@@ -255,33 +267,45 @@ router.post('/bookings', async (req, res) => {
   });
 });
 
-// 5. My Bookings (Customer tracking)
-router.get('/bookings/my-bookings', (req, res) => {
-  const { customer_id, phone } = req.query;
+// 5. My Bookings (Customer tracking - authenticated)
+router.get('/bookings/my-bookings', requireCustomerAuth, (req, res) => {
+  const user = req.user || req.customer || {};
+  const requestedCustomerId = req.query.customer_id;
 
-  if (!customer_id && !phone) {
-    return res.status(400).json({ error: 'Customer ID or phone number is required.' });
+  // If customer, force query to their own customer_id to avoid exposing other users' orders
+  const effectiveCustomerId = (user.role === 'admin')
+    ? (requestedCustomerId || user.customer_id)
+    : user.customer_id;
+
+  if (!effectiveCustomerId) {
+    return res.status(400).json({ error: 'Customer ID is required.' });
   }
 
-  const query = customer_id
-    ? "SELECT * FROM bookings WHERE customer_id = ? ORDER BY id DESC"
-    : "SELECT * FROM bookings WHERE customer_phone = ? ORDER BY id DESC";
-
-  const param = customer_id || phone;
-
-  db.all(query, [param], (err, rows) => {
+  db.all("SELECT * FROM bookings WHERE customer_id = ? ORDER BY id DESC", [effectiveCustomerId], (err, rows) => {
     if (err) return res.status(500).json({ error: err.message });
     res.json(rows || []);
   });
 });
 
-// 6. Single Booking Details
-router.get('/bookings/:booking_id', (req, res) => {
+// 6. Single Booking Details (Authenticated Customer Tracking with Privacy Protection)
+router.get('/bookings/:booking_id', requireCustomerAuth, (req, res) => {
   const { booking_id } = req.params;
+  const user = req.user || req.customer || {};
 
   db.get("SELECT * FROM bookings WHERE booking_id = ?", [booking_id], (err, booking) => {
     if (err) return res.status(500).json({ error: err.message });
     if (!booking) return res.status(404).json({ error: 'Booking not found.' });
+
+    // Customer-level authorization: ensure customer can only access their own order
+    if (user.role !== 'admin') {
+      const isOwner = user.customer_id && booking.customer_id === user.customer_id;
+      if (!isOwner) {
+        return res.status(403).json({ 
+          error: 'Access denied. You can only view tracking details for your own transport consignments.' 
+        });
+      }
+    }
+
     res.json(booking);
   });
 });

@@ -142,18 +142,34 @@ async function getCoordinatesForPlace(placeName) {
   return null;
 }
 
+function estimateTravelTime(distanceKm) {
+  // Average commercial lorry highway speed in Tamil Nadu is ~50-55 km/h + 30 min handling/tolls
+  const totalMinutes = Math.round((distanceKm / 52) * 60) + 30;
+  const hours = Math.floor(totalMinutes / 60);
+  const mins = totalMinutes % 60;
+  if (hours === 0) return `${mins} mins`;
+  return mins > 0 ? `${hours} hrs ${mins} mins` : `${hours} hrs`;
+}
+
 async function calculateActualRoadDistance(pickup, delivery) {
   const pNorm = String(pickup || '').toLowerCase().trim();
   const dNorm = String(delivery || '').toLowerCase().trim();
 
   if (pNorm === dNorm) {
-    return { distanceKm: 15, routeType: "Local Road Transfer", source: "Local City Route" };
+    const dist = 15;
+    return { 
+      distanceKm: dist, 
+      estimatedTime: estimateTravelTime(dist),
+      routeType: "Local Road Transfer", 
+      source: "Local City Route" 
+    };
   }
 
   const matrixDist = getMatrixRoadDistance(pNorm, dNorm);
   if (matrixDist) {
     return {
       distanceKm: matrixDist,
+      estimatedTime: estimateTravelTime(matrixDist),
       routeType: "Verified National/State Highway Road Distance",
       source: "Verified Highway Route Matrix"
     };
@@ -175,9 +191,12 @@ async function calculateActualRoadDistance(pickup, delivery) {
         if (osrmData.routes && osrmData.routes.length > 0) {
           const meters = osrmData.routes[0].distance;
           const roadKm = Math.round(meters / 1000);
+          const seconds = osrmData.routes[0].duration;
+          const durationStr = seconds ? `${Math.floor(seconds / 3600)} hrs ${Math.round((seconds % 3600) / 60)} mins` : estimateTravelTime(roadKm);
           if (roadKm > 0) {
             return {
               distanceKm: roadKm,
+              estimatedTime: durationStr,
               routeType: "Actual Highway Road Distance",
               source: "OSRM Real Road Network"
             };
@@ -190,8 +209,10 @@ async function calculateActualRoadDistance(pickup, delivery) {
   if (c1 && c2) {
     const straight = haversineKm(c1.lat, c1.lon, c2.lat, c2.lon);
     const estimatedRoadKm = Math.round(straight * 1.28);
+    const finalKm = Math.max(20, estimatedRoadKm);
     return {
-      distanceKm: Math.max(20, estimatedRoadKm),
+      distanceKm: finalKm,
+      estimatedTime: estimateTravelTime(finalKm),
       routeType: "Calculated Highway Road Distance",
       source: "Highway Curvature Network Model"
     };
@@ -199,10 +220,12 @@ async function calculateActualRoadDistance(pickup, delivery) {
 
   return {
     distanceKm: 250,
+    estimatedTime: estimateTravelTime(250),
     routeType: "Standard Estimated Transport Road Distance",
     source: "Regional Fleet Average"
   };
 }
+
 
 module.exports = {
   cities,

@@ -1,11 +1,14 @@
 import React from 'react';
 import { Truck, Search, ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const fontDisplay = { fontFamily: "'Space Grotesk', sans-serif" };
 const fontBody = { fontFamily: "'IBM Plex Sans', sans-serif" };
 
 export default function Home() {
+  const { isLoggedIn } = useAuth();
+
   return (
     <div className="w-full pb-12 animate-slide-up">
       {/* Hero Section */}
@@ -19,14 +22,14 @@ export default function Home() {
           </p>
           <div className="flex flex-col sm:flex-row justify-center gap-4">
             <Link 
-              to="/book" 
+              to={isLoggedIn ? "/book" : "/login?redirect=/book"} 
               style={fontDisplay}
               className="btn-primary px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 shadow-lg hover:shadow-green-900/30 transition-all"
             >
               Book a Lorry <Truck size={18} />
             </Link>
             <Link 
-              to="/track" 
+              to={isLoggedIn ? "/track" : "/login?redirect=/track"} 
               style={fontDisplay}
               className="glass-dark text-white px-8 py-4 rounded-xl text-sm font-bold flex items-center justify-center gap-2 hover:bg-white/20 transition-all"
             >

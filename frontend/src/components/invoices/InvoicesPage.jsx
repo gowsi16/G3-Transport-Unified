@@ -10,58 +10,79 @@ const InvoicesPage = ({ trips, showNotification }) => {
     const [isCustomerCopy, setIsCustomerCopy] = useState(false);
     const invoiceRef = useRef();
 
+    const [isGeneratingPDF, setIsGeneratingPDF] = useState(false);
+
     const handleTripSelect = (tripId) => setSelectedTrip(trips.find(t => t.id === tripId));
     
-    const downloadPDF = () => {
+    const downloadPDF = async () => {
         const input = invoiceRef.current;
         if (!input) { 
             showNotification('Invoice not ready. Please try again.', 'info'); 
             return; 
         }
-        
-        // Configure html2canvas for better quality
-        const options = {
-            scale: 2,
-            useCORS: true,
-            allowTaint: true,
-            backgroundColor: '#ffffff',
-            width: input.scrollWidth,
-            height: input.scrollHeight,
-            scrollX: 0,
-            scrollY: 0
-        };
-        
-        html2canvas(input, options).then(canvas => {
+
+        setIsGeneratingPDF(true);
+        try {
+            // Ensure any images (like the logo) are completely loaded before capturing
+            const images = input.querySelectorAll('img');
+            await Promise.all(
+                Array.from(images).map(img => {
+                    if (img.complete) return Promise.resolve();
+                    return new Promise((resolve) => {
+                        img.onload = resolve;
+                        img.onerror = resolve;
+                    });
+                })
+            );
+
+            // Small render settle delay
+            await new Promise(r => setTimeout(r, 100));
+
+            const canvas = await html2canvas(input, {
+                scale: 2,
+                useCORS: true,
+                allowTaint: true,
+                backgroundColor: '#ffffff',
+                logging: false
+            });
+
             const imgData = canvas.toDataURL('image/png', 1.0);
             const pdf = new jsPDF('p', 'mm', 'a4');
             
-            // Calculate dimensions to fit A4 properly
             const pdfWidth = pdf.internal.pageSize.getWidth();
             const pdfHeight = pdf.internal.pageSize.getHeight();
-            const canvasAspectRatio = canvas.height / canvas.width;
-            const pdfAspectRatio = pdfHeight / pdfWidth;
-            
-            let imgWidth = pdfWidth;
-            let imgHeight = pdfWidth * canvasAspectRatio;
-            
-            // If image is taller than A4, scale it down
-            if (imgHeight > pdfHeight) {
-                imgHeight = pdfHeight;
-                imgWidth = pdfHeight / canvasAspectRatio;
+            const pageMargin = 8;
+            const printableWidth = pdfWidth - (pageMargin * 2);
+            const imgHeight = (canvas.height * printableWidth) / canvas.width;
+
+            // Handle single or multi-page cleanly
+            if (imgHeight <= pdfHeight - (pageMargin * 2)) {
+                pdf.addImage(imgData, 'PNG', pageMargin, pageMargin, printableWidth, imgHeight);
+            } else {
+                // If it exceeds one page, split across pages
+                let heightLeft = imgHeight;
+                let position = pageMargin;
+
+                pdf.addImage(imgData, 'PNG', pageMargin, position, printableWidth, imgHeight);
+                heightLeft -= (pdfHeight - (pageMargin * 2));
+
+                while (heightLeft > 0) {
+                    position = heightLeft - imgHeight + pageMargin;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', pageMargin, position, printableWidth, imgHeight);
+                    heightLeft -= pdfHeight;
+                }
             }
-            
-            // Center the image on the page
-            const x = (pdfWidth - imgWidth) / 2;
-            const y = (pdfHeight - imgHeight) / 2;
-            
-            pdf.addImage(imgData, 'PNG', x, y, imgWidth, imgHeight);
-            const fileName = isCustomerCopy ? `customer-invoice-${selectedTrip.id}.pdf` : `internal-invoice-${selectedTrip.id}.pdf`;
+
+            const fileName = isCustomerCopy ? `Customer-Invoice-${selectedTrip.id}.pdf` : `Internal-Invoice-${selectedTrip.id}.pdf`;
             pdf.save(fileName);
-            showNotification(`${isCustomerCopy ? 'Customer' : 'Internal'} invoice downloaded as PDF!`, 'success');
-        }).catch(error => {
+            showNotification(`${isCustomerCopy ? 'Customer' : 'Internal'} invoice downloaded successfully!`, 'success');
+        } catch (error) {
             console.error('PDF generation error:', error);
             showNotification('Failed to generate PDF. Please try again.', 'error');
-        });
+        } finally {
+            setIsGeneratingPDF(false);
+        }
     };
 
     const printInvoice = () => {
@@ -70,25 +91,39 @@ const InvoicesPage = ({ trips, showNotification }) => {
             showNotification('Invoice not ready. Please try again.', 'info'); 
             return; 
         }
-        html2canvas(input, { scale: 2 }).then(canvas => {
-            const imgData = canvas.toDataURL('image/png');
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`<html><body><img src="${imgData}" style="width:100%;"></body></html>`);
-            printWindow.document.close();
-            printWindow.print();
-        }).catch(error => {
+
+        try {
+            // Apply printable class to invoice area, trigger native print dialog, then remove
+            input.classList.add('printable-invoice-area');
+            window.print();
+            setTimeout(() => {
+                input.classList.remove('printable-invoice-area');
+            }, 500);
+        } catch (error) {
             console.error('Print generation error:', error);
             showNotification('Failed to prepare print. Please try again.', 'error');
-        });
+        }
     };
 
     const G3Logo = () => (
-        <div className="relative">
-            <div className="w-20 h-20 bg-gradient-to-br from-primary-500 to-secondary-600 rounded-2xl shadow-md flex items-center justify-center">
-                <div className="text-white font-bold text-2xl tracking-wider">G3</div>
-            </div>
-            <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-primary-400 rounded-full flex items-center justify-center">
-                <Truck size={12} className="text-white" />
+        <div className="flex items-center gap-3">
+            <img 
+                src="/logo.png" 
+                alt="G3 Transport Logo" 
+                className="h-16 w-auto object-contain drop-shadow-xs" 
+                onError={(e) => {
+                    // Fallback to stylized SVG/badge if image fails
+                    e.currentTarget.style.display = 'none';
+                    if (e.currentTarget.nextSibling) {
+                        e.currentTarget.nextSibling.style.display = 'flex';
+                    }
+                }}
+            />
+            <div 
+                style={{ display: 'none' }} 
+                className="w-16 h-16 bg-emerald-700 text-white rounded-xl items-center justify-center font-black text-2xl shadow-md"
+            >
+                G3
             </div>
         </div>
     );
@@ -119,38 +154,50 @@ const InvoicesPage = ({ trips, showNotification }) => {
                             {/* Invoice Type Toggle */}
                             <div className="mb-6">
                                 <h3 className="font-semibold mb-3 text-gray-700">Invoice Type</h3>
-                                <div className="flex bg-gray-100 rounded-xl p-1">
+                                <div className="flex bg-gray-100 p-1 rounded-xl border border-gray-200">
                                     <button
+                                        type="button"
                                         onClick={() => setIsCustomerCopy(false)}
-                                        className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer ${
                                             !isCustomerCopy 
-                                                ? 'bg-secondary-600 text-white shadow-sm' 
-                                                : 'text-gray-600 hover:text-gray-800'
+                                                ? 'bg-emerald-700 text-white shadow-md' 
+                                                : 'text-gray-600 hover:text-emerald-700 hover:bg-emerald-50'
                                         }`}
                                     >
                                         Internal Copy
                                     </button>
                                     <button
+                                        type="button"
                                         onClick={() => setIsCustomerCopy(true)}
-                                        className={`flex-1 py-2 px-3 rounded-xl text-sm font-medium transition-colors ${
+                                        className={`flex-1 py-2 px-3 rounded-lg text-sm font-semibold transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer ${
                                             isCustomerCopy 
-                                                ? 'bg-primary-600 text-white shadow-sm' 
-                                                : 'text-gray-600 hover:text-gray-800'
+                                                ? 'bg-emerald-700 text-white shadow-md' 
+                                                : 'text-gray-600 hover:text-emerald-700 hover:bg-emerald-50'
                                         }`}
                                     >
                                         Customer Copy
                                     </button>
                                 </div>
-                                <p className="text-xs text-gray-500 mt-2">
-                                    {isCustomerCopy ? 'Hides profit and internal expense details' : 'Shows complete financial breakdown'}
+                                <p className="text-xs text-gray-500 mt-2 font-medium">
+                                    {isCustomerCopy ? 'Hides profit and internal expense details' : 'Shows complete financial breakdown with profit'}
                                 </p>
                             </div>
                             
                             <div className="flex space-x-4">
-                                <Button variant="primary" onClick={downloadPDF} className="flex-1 flex items-center justify-center gap-2">
-                                    <Download size={16} /> PDF
+                                <Button 
+                                    variant="primary" 
+                                    onClick={downloadPDF} 
+                                    disabled={isGeneratingPDF}
+                                    className="flex-1 flex items-center justify-center gap-2 cursor-pointer bg-emerald-700 hover:bg-emerald-800 text-white font-semibold py-2.5 rounded-xl shadow-md transition-colors"
+                                >
+                                    <Download size={16} className={isGeneratingPDF ? 'animate-bounce' : ''} /> 
+                                    {isGeneratingPDF ? 'Generating...' : 'PDF'}
                                 </Button>
-                                <Button variant="outline" onClick={printInvoice} className="flex-1 flex items-center justify-center gap-2">
+                                <Button 
+                                    variant="outline" 
+                                    onClick={printInvoice} 
+                                    className="flex-1 flex items-center justify-center gap-2 cursor-pointer border border-emerald-600 text-emerald-700 hover:bg-emerald-50 font-semibold py-2.5 rounded-xl transition-colors"
+                                >
                                     <Printer size={16} /> Print
                                 </Button>
                             </div>

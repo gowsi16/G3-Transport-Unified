@@ -104,7 +104,7 @@ async function runTestSuite() {
       assert('6. POST /api/auth/register creates customer account', resRegister.status === 200 && resRegister.json?.customer?.customer_id);
       const customerId = resRegister.json?.customer?.customer_id;
 
-      const testDate = '2027-05-' + String(Math.floor(10 + Math.random() * 18));
+      const testDate = `2029-${String(Math.floor(1 + Math.random() * 12)).padStart(2, '0')}-${String(Math.floor(1 + Math.random() * 28)).padStart(2, '0')}`;
 
       // 6. Customer creates booking
       const resBooking = await request({

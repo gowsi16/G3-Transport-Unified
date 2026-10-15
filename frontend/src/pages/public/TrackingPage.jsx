@@ -1,34 +1,133 @@
-import React, { useState } from 'react';
-import { Search, Package, MapPin, Truck } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, Package, MapPin, Truck, Lock, ShieldCheck, ChevronRight, AlertCircle, Clock } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
 
 const fontDisplay = { fontFamily: "'Space Grotesk', sans-serif" };
 const fontBody = { fontFamily: "'IBM Plex Sans', sans-serif" };
 
 export default function Tracking() {
-  const [bookingId, setBookingId] = useState('');
+  const [searchParams] = useSearchParams();
+  const initialBookingId = searchParams.get('id') || '';
+
+  const { user, isLoggedIn } = useAuth();
+  const navigate = useNavigate();
+
+  const [bookingId, setBookingId] = useState(initialBookingId);
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState(null);
   const [error, setError] = useState('');
+  const [myBookings, setMyBookings] = useState([]);
+  const [loadingBookings, setLoadingBookings] = useState(false);
 
-  const handleTrack = async (e) => {
-    e.preventDefault();
-    if (!bookingId) return;
+  // Enforce immediate redirect to login if unauthenticated
+  useEffect(() => {
+    if (!isLoggedIn) {
+      const trackingRedirect = initialBookingId ? `/track?id=${encodeURIComponent(initialBookingId)}` : '/track';
+      navigate(`/login?redirect=${encodeURIComponent(trackingRedirect)}`, { replace: true });
+    }
+  }, [isLoggedIn, initialBookingId, navigate]);
+
+  // Fetch customer's own bookings for quick selection
+  useEffect(() => {
+    if (isLoggedIn && user) {
+      const token = localStorage.getItem('customer_token') || localStorage.getItem('g3_token');
+      setLoadingBookings(true);
+      fetch(`/api/bookings/my-bookings?customer_id=${encodeURIComponent(user.customer_id || '')}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      })
+        .then(res => res.ok ? res.json() : [])
+        .then(data => {
+          if (Array.isArray(data)) {
+            setMyBookings(data);
+            if (initialBookingId && !result) {
+              const matched = data.find(b => b.booking_id === initialBookingId);
+              if (matched) setResult(matched);
+            }
+          }
+        })
+        .catch(err => console.error("Error loading my bookings:", err))
+        .finally(() => setLoadingBookings(false));
+    }
+  }, [isLoggedIn, user]);
+
+  const handleTrack = async (e, idToTrack) => {
+    if (e && e.preventDefault) e.preventDefault();
+    const targetId = idToTrack || bookingId;
+    if (!targetId) return;
+
     setLoading(true);
     setError('');
     setResult(null);
 
+    const token = localStorage.getItem('customer_token') || localStorage.getItem('g3_token');
+
     try {
-      const res = await fetch(`/api/bookings/${bookingId}`);
-      if (!res.ok) {
-        throw new Error('Booking not found');
-      }
+      const res = await fetch(`/api/bookings/${encodeURIComponent(targetId.trim())}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       const data = await res.json();
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Booking not found or access denied');
+      }
       setResult(data);
+      setBookingId(targetId);
     } catch (err) {
       setError(err.message);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
+
+  // If not authenticated, require login first
+  if (!isLoggedIn) {
+    const trackingRedirect = bookingId ? `/track?id=${encodeURIComponent(bookingId)}` : '/track';
+    return (
+      <div className="w-full max-w-xl mx-auto pt-8 pb-16 animate-slide-up">
+        <div className="premium-card p-8 sm:p-12 text-center border-t-4 border-green-600 shadow-xl">
+          <div className="w-20 h-20 rounded-2xl mx-auto flex items-center justify-center mb-6 bg-blue-50 text-blue-700 shadow-inner border border-blue-200">
+            <Lock size={38} />
+          </div>
+
+          <h2 style={fontDisplay} className="text-3xl font-bold text-slate-800 mb-3 tracking-tight">
+            Customer Login Required
+          </h2>
+          <p style={fontBody} className="text-slate-600 text-sm mb-8 max-w-md mx-auto leading-relaxed">
+            For privacy and security, live consignment tracking and delivery status are restricted to authenticated account holders.
+          </p>
+
+          <div className="space-y-4">
+            <Link
+              to={`/login?redirect=${encodeURIComponent(trackingRedirect)}`}
+              style={fontDisplay}
+              className="w-full btn-primary px-8 py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 shadow-lg shadow-green-900/20"
+            >
+              Log In to Track Shipment <ChevronRight size={18} />
+            </Link>
+
+            <div className="text-center pt-1">
+              <Link
+                to={`/login?redirect=${encodeURIComponent(trackingRedirect)}`}
+                className="text-xs font-semibold text-slate-500 hover:text-green-700 transition-colors"
+              >
+                Don't have an account? <span className="text-green-700 font-bold underline">Create New Account</span>
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-8 pt-6 border-t border-slate-100 flex items-center justify-center gap-6 text-xs text-slate-500">
+            <span className="flex items-center gap-1.5"><ShieldCheck size={14} className="text-green-600"/> Secure Data</span>
+            <span className="flex items-center gap-1.5"><Truck size={14} className="text-blue-600"/> Real-time Lorry Status</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="w-full max-w-3xl mx-auto animate-slide-up">
@@ -53,13 +152,39 @@ export default function Tracking() {
             type="submit"
             disabled={!bookingId || loading}
             style={fontDisplay}
-            className={`px-8 py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all ${
-              (!bookingId || loading) ? 'bg-slate-100 text-slate-400' : 'btn-primary'
+            className={`px-8 py-4 rounded-xl text-base font-bold flex items-center justify-center gap-2 transition-all cursor-pointer ${
+              (!bookingId || loading) ? 'bg-slate-100 text-slate-400 cursor-not-allowed' : 'btn-primary'
             }`}
           >
             {loading ? "Tracking..." : "Track Now"}
           </button>
         </form>
+
+        {/* Customer's recent bookings list for one-click tracking */}
+        {myBookings.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-slate-100">
+            <p className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+              <Clock size={12} className="text-green-600" /> Your Recent Bookings:
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {myBookings.map((b) => (
+                <button
+                  key={b.booking_id}
+                  type="button"
+                  onClick={() => handleTrack(null, b.booking_id)}
+                  className={`text-xs font-semibold px-3 py-1.5 rounded-lg border transition-colors flex items-center gap-1.5 cursor-pointer ${
+                    bookingId === b.booking_id
+                      ? 'bg-green-100 border-green-500 text-green-900 font-bold shadow-2xs'
+                      : 'bg-white border-slate-200 text-slate-700 hover:border-green-400 hover:text-green-800'
+                  }`}
+                >
+                  <span className="font-mono">{b.booking_id}</span>
+                  <span className="text-[11px] text-slate-400">({b.pickup} → {b.delivery})</span>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {error && (
           <div className="mt-8 p-6 rounded-xl text-sm text-red-600 bg-red-50 border border-red-200 flex items-center gap-3 animate-slide-up">

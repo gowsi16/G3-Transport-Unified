@@ -195,8 +195,8 @@ router.put('/customer/profile', (req, res) => {
 // -------------------------------------------------------------
 // 3. ADMIN 2FA OTP ACCESS (Backward Compatibility)
 // -------------------------------------------------------------
-router.post('/admin/auth/login', async (req, res) => {
-  const { username, password } = req.body;
+router.post('/admin/auth/login', (req, res) => {
+  const { username, password } = req.body || {};
 
   if (!username || !password) {
     return res.status(400).json({ error: 'Username and password are required' });
@@ -204,39 +204,98 @@ router.post('/admin/auth/login', async (req, res) => {
 
   const validAdminUser = process.env.ADMIN_USER || 'admin';
   const validAdminPass = process.env.ADMIN_PASS || 'admin123';
-  const adminEmail = process.env.ADMIN_EMAIL || 'g3transport.dispatch@gmail.com';
+  const adminEmail = process.env.ADMIN_EMAIL || 'gowsilan16@gmail.com';
 
-  const isPrimary = (username === validAdminUser && password === validAdminPass) || (username === 'admin.g3' && password === 'gggbrothers');
-  if (!isPrimary) {
-    return res.status(401).json({ error: 'Invalid admin username or password' });
+  // Check database first
+  db.get('SELECT * FROM users WHERE username = ?', [username], async (err, dbUser) => {
+    let isAuthenticated = false;
+    let verifiedName = 'Admin';
+
+    if (!err && dbUser && dbUser.role === 'admin') {
+      const match = bcrypt.compareSync(password, dbUser.password);
+      if (match) {
+        isAuthenticated = true;
+        verifiedName = dbUser.name || 'Admin';
+      }
+    }
+
+    // Fallback to env or default admin credentials
+    if (!isAuthenticated) {
+      if ((username === validAdminUser && password === validAdminPass) || (username === 'admin.g3' && password === 'gggbrothers')) {
+        isAuthenticated = true;
+      }
+    }
+
+    if (!isAuthenticated) {
+      return res.status(401).json({ error: 'Invalid admin username or password' });
+    }
+
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const otpCode = crypto.randomInt(100000, 1000000).toString();
+    const hashedOtp = crypto.createHash('sha256').update(otpCode).digest('hex');
+
+    const now = Date.now();
+    adminOtpSessions.set(sessionToken, {
+      username,
+      name: verifiedName,
+      email: adminEmail,
+      hashedOtp,
+      expiresAt: now + 5 * 60 * 1000, // 5 minutes single-use expiry
+      attempts: 0,
+      maxAttempts: 5,
+      resendCooldownUntil: now + 60 * 1000
+    });
+
+    const sendResult = await sendAdminOtpEmail(adminEmail, otpCode);
+
+    res.json({
+      success: true,
+      message: `Verification OTP sent to registered admin email (${maskEmail(adminEmail)}).`,
+      sessionToken,
+      maskedEmail: maskEmail(adminEmail),
+      expiresInSeconds: 300,
+      resendCooldownSeconds: 60
+    });
+  });
+});
+
+router.post('/admin/auth/resend-otp', async (req, res) => {
+  const { sessionToken } = req.body || {};
+  if (!sessionToken) {
+    return res.status(400).json({ error: 'Session token is required.' });
   }
 
-  const sessionToken = crypto.randomBytes(32).toString('hex');
+  const session = adminOtpSessions.get(sessionToken);
+  if (!session) {
+    return res.status(400).json({ error: 'Invalid or expired OTP session. Please log in again.' });
+  }
+
+  const now = Date.now();
+  if (session.resendCooldownUntil && now < session.resendCooldownUntil) {
+    const secondsRemaining = Math.ceil((session.resendCooldownUntil - now) / 1000);
+    return res.status(429).json({
+      error: `Please wait ${secondsRemaining}s before requesting a new OTP.`,
+      secondsRemaining
+    });
+  }
+
   const otpCode = crypto.randomInt(100000, 1000000).toString();
   const hashedOtp = crypto.createHash('sha256').update(otpCode).digest('hex');
 
-  const now = Date.now();
-  adminOtpSessions.set(sessionToken, {
-    username,
-    email: adminEmail,
-    hashedOtp,
-    expiresAt: now + 5 * 60 * 1000,
-    attempts: 0,
-    maxAttempts: 5,
-    resendCooldownUntil: now + 60 * 1000
-  });
+  session.hashedOtp = hashedOtp;
+  session.expiresAt = now + 5 * 60 * 1000;
+  session.attempts = 0;
+  session.resendCooldownUntil = now + 60 * 1000;
+  adminOtpSessions.set(sessionToken, session);
 
-  const sendResult = await sendAdminOtpEmail(adminEmail, otpCode);
+  const sendResult = await sendAdminOtpEmail(session.email, otpCode);
 
   res.json({
     success: true,
-    message: `Verification OTP sent to registered admin email (${maskEmail(adminEmail)}).`,
-    sessionToken,
-    maskedEmail: maskEmail(adminEmail),
+    message: `A new 6-digit OTP has been sent to ${maskEmail(session.email)}.`,
+    maskedEmail: maskEmail(session.email),
     expiresInSeconds: 300,
-    resendCooldownSeconds: 60,
-    devMode: Boolean(sendResult.devMode),
-    devOtp: sendResult.devMode ? sendResult.otp : undefined
+    resendCooldownSeconds: 60
   });
 });
 
@@ -276,16 +335,19 @@ router.post('/admin/auth/verify-otp', (req, res) => {
   adminOtpSessions.delete(sessionToken);
 
   const token = jwt.sign(
-    { role: 'admin', username: session.username },
+    { role: 'admin', username: session.username, name: session.name || 'Admin' },
     JWT_SECRET,
-    { expiresIn: '8h' }
+    { expiresIn: '24h' }
   );
 
   res.json({
     success: true,
     message: 'Admin authentication successful!',
     token,
-    admin: { username: session.username, email: session.email }
+    username: session.username,
+    name: session.name || 'Admin',
+    role: 'admin',
+    admin: { username: session.username, name: session.name || 'Admin', email: session.email, role: 'admin' }
   });
 });
 

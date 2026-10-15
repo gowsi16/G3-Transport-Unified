@@ -27,37 +27,78 @@ router.get('/', (req, res) => {
   });
 });
 
-// 2. Create Trip
+// 2. Create Trip (with duplicate prevention and validation)
 router.post('/', (req, res) => {
   const { 
     id, date, vehicle_no, driverName, from_city, to_city, 
     revenue, incomeItems = [], expenseItems = [], notes, 
-    total_km, fuel_litres, mileage 
+    total_km = 0, fuel_litres = 0, mileage = 0 
   } = req.body;
 
-  const total_expense = expenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
-  const profit = (Number(revenue) || 0) - total_expense;
+  if (!vehicle_no) {
+    return res.status(400).json({ error: 'Vehicle number is required' });
+  }
 
-  const sql = `
-    INSERT INTO trips (
-      id, date, vehicle_no, driverName, from_city, to_city, 
-      revenue, total_expense, profit, incomeItems, expenseItems, 
-      notes, total_km, fuel_litres, mileage
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `;
+  const parsedRevenue = Number(revenue) || 0;
+  const parsedExpenseItems = Array.isArray(expenseItems) ? expenseItems : [];
+  const parsedIncomeItems = Array.isArray(incomeItems) ? incomeItems : [];
+  const total_expense = parsedExpenseItems.reduce((sum, item) => sum + (Number(item.amount) || 0), 0);
+  const profit = parsedRevenue - total_expense;
 
   const tripId = id || `TRIP-${Date.now().toString().slice(-6)}`;
-  const params = [
-    tripId, date, vehicle_no, driverName, from_city, to_city, 
-    revenue, total_expense, profit, JSON.stringify(incomeItems), 
-    JSON.stringify(expenseItems), notes, total_km, fuel_litres, mileage
-  ];
+  const tripDate = date || new Date().toISOString().split('T')[0];
 
-  db.run(sql, params, function(err) {
-    if (err) {
-      return res.status(400).json({ error: err.message });
+  // Check if trip already exists (duplicate prevention)
+  db.get('SELECT id FROM trips WHERE id = ?', [tripId], (checkErr, existingTrip) => {
+    if (checkErr) {
+      return res.status(500).json({ error: checkErr.message });
     }
-    res.status(201).json({ message: 'Trip created successfully', id: tripId });
+
+    if (existingTrip) {
+      // Update existing record rather than failing on duplicate retry
+      const updateSql = `
+        UPDATE trips SET
+          date = ?, vehicle_no = ?, driverName = ?, from_city = ?, to_city = ?,
+          revenue = ?, total_expense = ?, profit = ?, incomeItems = ?, expenseItems = ?,
+          notes = ?, total_km = ?, fuel_litres = ?, mileage = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE id = ?
+      `;
+      const updateParams = [
+        tripDate, vehicle_no, driverName || '', from_city || 'Salem', to_city || 'Chennai',
+        parsedRevenue, total_expense, profit, JSON.stringify(parsedIncomeItems),
+        JSON.stringify(parsedExpenseItems), notes || '', total_km, fuel_litres, mileage,
+        tripId
+      ];
+
+      db.run(updateSql, updateParams, function(updateErr) {
+        if (updateErr) {
+          return res.status(400).json({ error: updateErr.message });
+        }
+        return res.status(200).json({ message: 'Trip updated successfully', id: tripId, updated: true });
+      });
+      return;
+    }
+
+    const insertSql = `
+      INSERT INTO trips (
+        id, date, vehicle_no, driverName, from_city, to_city, 
+        revenue, total_expense, profit, incomeItems, expenseItems, 
+        notes, total_km, fuel_litres, mileage
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `;
+
+    const insertParams = [
+      tripId, tripDate, vehicle_no, driverName || '', from_city || 'Salem', to_city || 'Chennai', 
+      parsedRevenue, total_expense, profit, JSON.stringify(parsedIncomeItems), 
+      JSON.stringify(parsedExpenseItems), notes || '', total_km, fuel_litres, mileage
+    ];
+
+    db.run(insertSql, insertParams, function(err) {
+      if (err) {
+        return res.status(400).json({ error: err.message });
+      }
+      res.status(201).json({ message: 'Trip created successfully', id: tripId });
+    });
   });
 });
 

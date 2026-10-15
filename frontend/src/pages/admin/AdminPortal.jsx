@@ -13,10 +13,13 @@ import TripsPage from '../../components/trips/TripsPage';
 import InvoicesPage from '../../components/invoices/InvoicesPage';
 import OCRPage from '../../components/ocr/OCRPage';
 import DashboardPage from '../../components/dashboard/DashboardPage';
-import ContactPage from '../../components/contact/ContactPage';
+import SupportInboxPage from '../../components/contact/SupportInboxPage';
+import FleetDriversPage from '../../components/fleet/FleetDriversPage';
+import DriverManagementPage from '../../components/drivers/DriverManagementPage';
+import FleetManagementPage from '../../components/fleet/FleetManagementPage';
 
 export default function AdminPortal({ initialPage }) {
-  const { isAdmin } = useAuth();
+  const { isAdmin, adminUser } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -28,7 +31,8 @@ export default function AdminPortal({ initialPage }) {
     if (path === 'trips' || path.startsWith('trips')) return 'Trips';
     if (path === 'invoices' || path.startsWith('invoices')) return 'Invoices';
     if (path === 'ocr' || path.startsWith('ocr')) return 'OCR';
-    if (path === 'contact' || path.startsWith('contact')) return 'Contact';
+    if (path === 'fleet-drivers' || path.startsWith('fleet-drivers') || path === 'fleet' || path === 'drivers') return 'FleetDrivers';
+    if (path === 'inbox' || path.startsWith('inbox') || path === 'support' || path.startsWith('support')) return 'Inbox';
     if (path === 'home') return 'Home';
     return 'Dashboard';
   };
@@ -129,9 +133,24 @@ export default function AdminPortal({ initialPage }) {
       case 'Invoices':
         return <InvoicesPage trips={trips} showNotification={showNotification} />;
       case 'OCR':
-        return <OCRPage onAddTrip={handleAddTrip} showNotification={showNotification} />;
-      case 'Contact':
-        return <ContactPage showNotification={showNotification} />;
+        return (
+          <OCRPage 
+            onSaveTrip={handleAddTrip} 
+            onAddTrip={handleAddTrip} 
+            currentUser={adminUser || { name: 'Admin' }}
+            fetchTrips={fetchTrips}
+            showNotification={showNotification} 
+          />
+        );
+      case 'Inbox':
+      case 'Support':
+        return <SupportInboxPage showNotification={showNotification} />;
+      case 'FleetDrivers':
+        return <FleetDriversPage showNotification={showNotification} />;
+      case 'Drivers':
+        return <FleetDriversPage showNotification={showNotification} />;
+      case 'Fleet':
+        return <FleetDriversPage showNotification={showNotification} />;
       case 'Home':
         return <AdminHomePage trips={trips} />;
       case 'Dashboard':
