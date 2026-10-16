@@ -5,8 +5,8 @@ import { ShieldCheck, Lock, User, AlertCircle, ArrowLeft, Mail, RefreshCw, KeyRo
 
 export default function AdminLoginPage() {
   const [step, setStep] = useState(1); // 1 = Password verification, 2 = Email OTP verification
-  const [username, setUsername] = useState('admin.g3');
-  const [password, setPassword] = useState('gggbrothers');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [sessionToken, setSessionToken] = useState('');
   const [maskedEmail, setMaskedEmail] = useState('');
@@ -224,7 +224,7 @@ export default function AdminLoginPage() {
                   type="text"
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
-                  placeholder="admin.g3"
+                  placeholder="Enter administrator username"
                   required
                   className="w-full pl-9 pr-3 py-2.5 text-sm border border-gray-300 rounded-xl focus:ring-2 focus:ring-green-600 focus:border-green-600 outline-none"
                 />

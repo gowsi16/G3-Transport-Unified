@@ -68,7 +68,7 @@ export default function ContactPage() {
     {
       icon: <MapPin className="text-green-600" size={22} />,
       title: 'Address',
-      lines: ['3/93, Kalaignar Street,', 'Vellalagundam, Vazhapady Taluk,', 'Salem – 636 011, Tamil Nadu']
+      lines: ['Lorry Market Street,', 'Shevapet, Salem - 636002']
     },
     {
       icon: <Phone className="text-green-600" size={22} />,
@@ -154,7 +154,7 @@ export default function ContactPage() {
 
           {/* Map Link */}
           <a
-            href="https://maps.app.goo.gl/JCbcquUf5NszbS2g6"
+            href="https://www.google.com/maps/search/?api=1&query=Lorry%20Market%20Street%2C%20Shevapet%2C%20Salem%20-%20636002"
             target="_blank"
             rel="noopener noreferrer"
             className="block bg-green-700 hover:bg-green-800 text-white text-center py-3 rounded-2xl font-semibold transition-all shadow-md hover:shadow-lg text-sm"

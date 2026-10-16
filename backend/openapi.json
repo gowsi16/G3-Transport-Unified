@@ -1,0 +1,1941 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "G3 Transport Unified API",
+    "version": "1.0.0",
+    "description": "API reference for G3 Transport booking, customer authentication, admin operations, fleet, drivers, trips and contact support. Protected endpoints require a bearer token."
+  },
+  "servers": [
+    {
+      "url": "/",
+      "description": "Current website"
+    }
+  ],
+  "tags": [
+    {
+      "name": "System"
+    },
+    {
+      "name": "Authentication"
+    },
+    {
+      "name": "Bookings"
+    },
+    {
+      "name": "Admin"
+    },
+    {
+      "name": "Fleet"
+    },
+    {
+      "name": "Drivers"
+    },
+    {
+      "name": "Contact"
+    },
+    {
+      "name": "Trips"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "BearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "paths": {
+    "/api/health": {
+      "get": {
+        "tags": [
+          "System"
+        ],
+        "summary": "Check backend health",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
+    "/api/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Admin login",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Register customer",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Customer login",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/me": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Get customer profile",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "parameters": [
+          {
+            "name": "customer_id",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "phone",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ]
+      }
+    },
+    "/api/customer/profile": {
+      "put": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Update customer profile",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/login": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Start admin OTP login",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/resend-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Resend admin OTP",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/verify-otp": {
+      "post": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify admin OTP",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/auth/verify-token": {
+      "get": {
+        "tags": [
+          "Authentication"
+        ],
+        "summary": "Verify admin token",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/pricing-rules": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Get pricing rules",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        }
+      }
+    },
+    "/api/calculate-price": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Calculate transport price",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/availability": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Check route, availability and fare",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "parameters": [
+          {
+            "name": "pickup",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "delivery",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "expected_date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          },
+          {
+            "name": "weight",
+            "in": "query",
+            "schema": {
+              "type": "number"
+            }
+          },
+          {
+            "name": "weight_unit",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "helpers",
+            "in": "query",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ]
+      }
+    },
+    "/api/bookings": {
+      "post": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Create a booking",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/my-bookings": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "List customer bookings",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/bookings/{booking_id}": {
+      "get": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Get booking details",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "booking_id value"
+          }
+        ]
+      }
+    },
+    "/api/bookings/{booking_id}/cancel": {
+      "put": {
+        "tags": [
+          "Bookings"
+        ],
+        "summary": "Cancel booking",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "booking_id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/overview": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get admin overview",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/bookings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List bookings",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "status",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "search",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "date",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "format": "date"
+            }
+          }
+        ]
+      }
+    },
+    "/api/bookings/{booking_id}/assign": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Assign lorry and driver",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "booking_id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/bookings/{booking_id}/status": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update booking status",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "booking_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "booking_id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/notifications": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List notifications",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/notifications/{id}/read": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mark notification read",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/notifications/mark-all-read": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Mark all notifications read",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/analytics": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get booking analytics",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/vehicles": {
+      "get": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "List vehicles",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/vehicles/{vehicle_no}/status": {
+      "put": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "Update vehicle status",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "vehicle_no",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "vehicle_no value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/drivers": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "List drivers",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Add a driver",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/drivers/{name}/status": {
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update driver status",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "name",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "name value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/pricing": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Get pricing configuration",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Update pricing configuration",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit-logs": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "List audit logs",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/contact": {
+      "post": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Submit contact enquiry",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/contact-messages": {
+      "get": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "List contact messages",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/contact-messages/{id}": {
+      "get": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Get contact message",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Update contact message",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/contact-stats": {
+      "get": {
+        "tags": [
+          "Contact"
+        ],
+        "summary": "Get contact statistics",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/drivers/all": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "List drivers with filters",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/drivers/{id}/stats": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get driver statistics",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ]
+      }
+    },
+    "/api/admin/drivers/create": {
+      "post": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Create driver record",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/drivers/{id}/update": {
+      "put": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Update driver record",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/drivers/licence-alerts": {
+      "get": {
+        "tags": [
+          "Drivers"
+        ],
+        "summary": "Get licence alerts",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/admin/fleet": {
+      "get": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "List fleet vehicles",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "Add fleet vehicle",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fleet/{id}": {
+      "get": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "Get fleet vehicle details",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ]
+      },
+      "put": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "Update fleet vehicle",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/fleet/{id}/availability": {
+      "get": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "Check vehicle availability",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ]
+      }
+    },
+    "/api/admin/fleet/alerts": {
+      "get": {
+        "tags": [
+          "Fleet"
+        ],
+        "summary": "Get fleet alerts",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      }
+    },
+    "/api/trips": {
+      "get": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "List trips",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Create or update trip",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/trips/{id}": {
+      "delete": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Delete trip",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "id value"
+          }
+        ]
+      }
+    },
+    "/api/trips/upload": {
+      "post": {
+        "tags": [
+          "Trips"
+        ],
+        "summary": "Upload trips spreadsheet",
+        "responses": {
+          "200": {
+            "description": "Request processed successfully."
+          },
+          "400": {
+            "description": "Invalid request or input."
+          },
+          "401": {
+            "description": "Authentication required or invalid."
+          },
+          "500": {
+            "description": "Server error."
+          }
+        },
+        "security": [
+          {
+            "BearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "file": {
+                    "type": "string",
+                    "format": "binary"
+                  }
+                },
+                "required": [
+                  "file"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

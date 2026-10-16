@@ -2,6 +2,8 @@ const express = require('express');
 const cors = require('cors');
 const path = require('path');
 const dotenv = require('dotenv');
+const swaggerUi = require('swagger-ui-express');
+const openapiSpec = require('./openapi.json');
 
 // Load environment variables
 dotenv.config({ path: path.resolve(__dirname, '.env') });
@@ -37,6 +39,11 @@ app.get('/api/health', (req, res) => {
     timestamp: new Date().toISOString()
   });
 });
+
+
+// Interactive API documentation
+app.get('/api/openapi.json', (req, res) => res.json(openapiSpec));
+app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(openapiSpec));
 
 // Register Modular Routers
 app.use('/api', authRoutes);
