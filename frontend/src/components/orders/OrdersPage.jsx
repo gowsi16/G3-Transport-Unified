@@ -9,6 +9,30 @@ import bookingApi from '../../services/bookingApi';
 const fontDisplay = { fontFamily: "'Space Grotesk', sans-serif" };
 const fontBody = { fontFamily: "'IBM Plex Sans', sans-serif" };
 
+function formatTimestampIST(value) {
+  if (!value) return "—";
+
+  const iso = value.includes("T") ? value : value.replace(" ", "T");
+  const timestamp = /(?:Z|[+-]\\d{2}:?\\d{2})$/i.test(iso)
+    ? iso
+    : iso + "Z";
+
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return value;
+
+  return new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: true
+  }).format(date) + " IST";
+}
+
+
 export default function OrdersPage({ showNotification, onNavigateToDashboard }) {
   // Data States
   const [bookings, setBookings] = useState([]);
@@ -795,7 +819,7 @@ export default function OrdersPage({ showNotification, onNavigateToDashboard }) 
 
             <div className="flex items-center justify-between pt-3 border-t border-gray-100">
               <span className="text-xs text-gray-400">
-                Created: {selectedBookingForDetails.created_at}
+                Created: {formatTimestampIST(selectedBookingForDetails.created_at)}
               </span>
               <div className="flex items-center gap-2">
                 <button
